@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+.env
+*.local
+*.log
+.DS_Store
+clickhouse_data
+postgres_data

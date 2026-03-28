@@ -1,0 +1,32 @@
+// [PRODUCTNAME] PostgreSQL Schema — Prisma ORM
+// Stores project metadata and API key hashes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apiKeys   ApiKey[]
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  keyHash   String    @unique // SHA-256 hash — NEVER store plaintext
+  label     String?
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id])
+  createdAt DateTime  @default(now())
+  lastUsed  DateTime?
+  isActive  Boolean   @default(true)
+
+  @@index([keyHash])
+}

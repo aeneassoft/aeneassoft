@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(pip install:*)",
+      "Bash(pytest sdks/python/tests -v)",
+      "Bash(python -m pytest sdks/python/tests -v)",
+      "Bash(where python:*)",
+      "Bash(python -m pip install pytest pydantic httpx)",
+      "Bash(python -m pip install -e \".[dev]\")",
+      "Bash(npx next:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s --max-time 5 http://localhost:3001/health)",
+      "Bash(curl -s --max-time 5 http://localhost:8080/health)",
+      "Bash(curl -s --max-time 5 http://localhost:8123/ping)",
+      "Bash(cmd.exe /c \"docker logs saas-clickhouse-1 2>&1\")",
+      "Bash(docker compose:*)",
+      "Bash(docker --version)",
+      "Bash(where docker:*)",
+      "Bash(python tests/test_e2e.py)",
+      "Bash(python tests/stress_ingest.py)",
+      "Bash(python tests/stress_queries.py)",
+      "Bash(python tests/stress_orphans.py)",
+      "Bash(python tests/stress_clickhouse.py)",
+      "Bash(python tests/test_zdr.py)",
+      "Bash(python -c \":*)",
+      "Bash(xargs wc:*)",
+      "Bash(curl -s localhost:3001/health)",
+      "Bash(curl -s localhost:8080/health)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" localhost:3001/api/traces)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" localhost:3001/api/metrics)",
+      "Bash(npm audit:*)"
+    ]
+  }
+}
