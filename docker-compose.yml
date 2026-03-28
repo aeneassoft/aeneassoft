@@ -69,6 +69,7 @@ services:
       KAFKA_BROKERS: "kafka:9092"
       ZERO_DATA_RETENTION: "false"
       DATA_RETENTION_DAYS: "30"
+      API_KEY: "${API_KEY:-}"
     depends_on:
       clickhouse: { condition: service_healthy }
       postgres: { condition: service_healthy }
