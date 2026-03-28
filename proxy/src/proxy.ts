@@ -1,6 +1,7 @@
 // [PRODUCTNAME] API Proxy
 // Routes are auto-registered from providers.ts — add new AI providers there.
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import { sendSpanToKafka } from './kafka-producer';
@@ -10,7 +11,18 @@ import { PROVIDERS } from './providers';
 const ZERO_DATA_RETENTION = process.env.ZERO_DATA_RETENTION === 'true';
 
 export function buildServer() {
-  const fastify = Fastify({ logger: true });
+  const fastify = Fastify({ logger: true, bodyLimit: 524_288 });
+
+  // Rate limit: 200 req/min per IP (proxy handles upstream API calls)
+  fastify.register(rateLimit, {
+    global: true,
+    max: 200,
+    timeWindow: '1 minute',
+    errorResponseBuilder: () => ({
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded — max 200 requests/minute per IP',
+    }),
+  });
 
   // ── Health check ──────────────────────────────────────────────────────────
   fastify.get('/health', async () => ({

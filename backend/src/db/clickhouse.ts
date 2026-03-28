@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS agent_spans (
   trace_id       FixedString(32),
   span_id        FixedString(16),
   parent_span_id Nullable(FixedString(16)),
+  org_id         String DEFAULT '',
   name           String,
   kind           LowCardinality(String),
   start_time     DateTime64(3),
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS agent_spans (
   raw_span       String
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMM(start_time)
-ORDER BY (trace_id, start_time, span_id)
+ORDER BY (org_id, trace_id, start_time, span_id)
 TTL toDateTime(start_time) + INTERVAL ${retentionDays} DAY
 SETTINGS index_granularity = 8192;
 `;
@@ -43,10 +44,39 @@ CREATE TABLE IF NOT EXISTS agent_causal_links (
   source_span FixedString(16),
   target_span FixedString(16),
   link_type   LowCardinality(String),
+  org_id      String DEFAULT '',
   created_at  DateTime DEFAULT now()
 ) ENGINE = MergeTree()
-ORDER BY (trace_id, source_span, target_span)
+ORDER BY (org_id, trace_id, source_span, target_span)
 TTL created_at + INTERVAL ${retentionDays} DAY;
+`;
+
+export const CREATE_API_KEYS_TABLE = `
+CREATE TABLE IF NOT EXISTS api_keys (
+  key_hash    FixedString(64),
+  org_id      String,
+  label       String DEFAULT '',
+  scopes      Array(String) DEFAULT ['read', 'write'],
+  created_at  DateTime DEFAULT now()
+) ENGINE = ReplacingMergeTree()
+ORDER BY (key_hash);
+`;
+
+export const CREATE_DAILY_COST_TABLE = `
+CREATE MATERIALIZED VIEW IF NOT EXISTS daily_cost_mv
+ENGINE = SummingMergeTree()
+ORDER BY (org_id, day, agent_id, model_name)
+AS SELECT
+  org_id,
+  toDate(start_time) AS day,
+  agent_id,
+  model_name,
+  count() AS call_count,
+  sum(prompt_tokens) AS total_prompt_tokens,
+  sum(completion_tokens) AS total_completion_tokens,
+  sum(accumulated_cost_usd) AS total_cost_usd
+FROM agent_spans
+GROUP BY org_id, day, agent_id, model_name;
 `;
 
 export async function initClickHouse(url: string): Promise<void> {
@@ -66,6 +96,16 @@ export async function initClickHouse(url: string): Promise<void> {
     body: CREATE_CAUSAL_LINKS_TABLE,
   });
 
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_API_KEYS_TABLE,
+  });
+
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_DAILY_COST_TABLE,
+  });
+
   console.log(`[PRODUCTNAME] ClickHouse tables initialized (TTL: ${retentionDays} days)`);
 }
 
@@ -75,11 +115,12 @@ export async function insertSpan(url: string, span: any): Promise<void> {
 }
 
 // Serialize one span to a row object
-function spanToRow(span: any, zdr: boolean): Record<string, any> {
+function spanToRow(span: any, zdr: boolean, orgId: string = ''): Record<string, any> {
   return {
     trace_id: span.trace_id,
     span_id: span.span_id,
     parent_span_id: span.parent_span_id || null,
+    org_id: orgId,
     name: span.name,
     kind: span.kind,
     start_time: Math.floor(span.start_time_unix_nano / 1_000_000),
@@ -112,12 +153,12 @@ function serializeValue(v: any): string | number {
 }
 
 // Batch insert — one HTTP request for N spans (high-throughput path)
-export async function insertSpanBatch(url: string, spans: any[]): Promise<void> {
+export async function insertSpanBatch(url: string, spans: any[], orgId: string = ''): Promise<void> {
   if (spans.length === 0) return;
   const db = process.env.CLICKHOUSE_DB || 'productname';
   const zdr = process.env.ZERO_DATA_RETENTION === 'true';
 
-  const rows = spans.map((s) => spanToRow(s, zdr));
+  const rows = spans.map((s) => spanToRow(s, zdr, orgId));
   const columns = Object.keys(rows[0]).join(', ');
   const valueRows = rows
     .map((row) => `(${Object.values(row).map(serializeValue).join(', ')})`)
@@ -131,14 +172,57 @@ export async function insertSpanBatch(url: string, spans: any[]): Promise<void> 
   });
 }
 
-export async function queryTraces(url: string, limit = 50): Promise<any[]> {
+export interface TraceQueryParams {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  agent_id?: string;
+  model?: string;
+  from?: string;
+  to?: string;
+}
+
+// Strict allowlists for filter values — prevents SQL injection
+const VALID_STATUS = /^(OK|ERROR|UNSET)$/;
+const VALID_IDENTIFIER = /^[a-zA-Z0-9._\-]{1,128}$/;
+const VALID_DATE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/;
+
+function sanitizeFilter(value: string, pattern: RegExp): string | null {
+  return pattern.test(value) ? value : null;
+}
+
+export async function queryTraces(url: string, limit = 50, params: TraceQueryParams = {}): Promise<any[]> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
+  const conditions = ['parent_span_id IS NULL'];
+  if (params.status) {
+    const safe = sanitizeFilter(params.status, VALID_STATUS);
+    if (safe) conditions.push(`status_code = '${safe}'`);
+  }
+  if (params.agent_id) {
+    const safe = sanitizeFilter(params.agent_id, VALID_IDENTIFIER);
+    if (safe) conditions.push(`agent_id = '${safe}'`);
+  }
+  if (params.model) {
+    const safe = sanitizeFilter(params.model, VALID_IDENTIFIER);
+    if (safe) conditions.push(`model_name = '${safe}'`);
+  }
+  if (params.from) {
+    const safe = sanitizeFilter(params.from, VALID_DATE);
+    if (safe) conditions.push(`start_time >= '${safe}'`);
+  }
+  if (params.to) {
+    const safe = sanitizeFilter(params.to, VALID_DATE);
+    if (safe) conditions.push(`start_time <= '${safe}'`);
+  }
+  const effectiveLimit = Math.min(Math.max(params.limit || limit, 1), 500);
+  const effectiveOffset = Math.max(params.offset || 0, 0);
   const query = `
     SELECT *
     FROM agent_spans
-    WHERE parent_span_id IS NULL
+    WHERE ${conditions.join(' AND ')}
     ORDER BY start_time DESC
-    LIMIT ${limit}
+    LIMIT ${effectiveLimit}
+    OFFSET ${effectiveOffset}
     FORMAT JSON
   `;
 
@@ -218,4 +302,114 @@ export async function queryMetrics(url: string): Promise<any> {
 
   const data = (await res.json()) as any;
   return data.data?.[0] || { total_traces: 0, error_rate: 0, total_cost_usd: 0, avg_latency_ms: 0 };
+}
+
+// ── API Key Management ───────────────────────────────────────────────────────
+
+import { createHash } from 'crypto';
+
+function hashKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
+}
+
+export async function createApiKey(url: string, rawKey: string, orgId: string, label: string = ''): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const keyHash = hashKey(rawKey);
+  const safeLabel = label.replace(/'/g, "\\'");
+  const query = `INSERT INTO api_keys (key_hash, org_id, label) VALUES ('${keyHash}', '${orgId}', '${safeLabel}')`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function lookupApiKey(url: string, rawKey: string): Promise<{ org_id: string; scopes: string[] } | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const keyHash = hashKey(rawKey);
+  const query = `SELECT org_id, scopes FROM api_keys WHERE key_hash = '${keyHash}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  const row = data.data?.[0];
+  if (!row) return null;
+  return { org_id: row.org_id, scopes: row.scopes };
+}
+
+export async function listApiKeys(url: string, orgId: string): Promise<any[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeOrg = sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default';
+  const query = `SELECT key_hash, label, scopes, created_at FROM api_keys WHERE org_id = '${safeOrg}' FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+// ── Cost Rollup Queries ──────────────────────────────────────────────────────
+
+export async function queryCostDaily(url: string, from?: string, to?: string): Promise<any[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const conditions: string[] = [];
+  if (from) { const safe = sanitizeFilter(from, VALID_DATE); if (safe) conditions.push(`day >= '${safe}'`); }
+  if (to) { const safe = sanitizeFilter(to, VALID_DATE); if (safe) conditions.push(`day <= '${safe}'`); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const query = `
+    SELECT
+      day,
+      sum(call_count) AS calls,
+      sum(total_prompt_tokens) AS prompt_tokens,
+      sum(total_completion_tokens) AS completion_tokens,
+      sum(total_cost_usd) AS cost_usd
+    FROM daily_cost_mv
+    ${where}
+    GROUP BY day
+    ORDER BY day ASC
+    FORMAT JSON
+  `;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+export async function queryCostByAgent(url: string, from?: string, to?: string): Promise<any[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const conditions: string[] = [];
+  if (from) { const safe = sanitizeFilter(from, VALID_DATE); if (safe) conditions.push(`day >= '${safe}'`); }
+  if (to) { const safe = sanitizeFilter(to, VALID_DATE); if (safe) conditions.push(`day <= '${safe}'`); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const query = `
+    SELECT
+      agent_id,
+      sum(call_count) AS calls,
+      sum(total_prompt_tokens) AS prompt_tokens,
+      sum(total_completion_tokens) AS completion_tokens,
+      sum(total_cost_usd) AS cost_usd
+    FROM daily_cost_mv
+    ${where}
+    GROUP BY agent_id
+    ORDER BY cost_usd DESC
+    FORMAT JSON
+  `;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+export async function queryCostByModel(url: string, from?: string, to?: string): Promise<any[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const conditions: string[] = [];
+  if (from) { const safe = sanitizeFilter(from, VALID_DATE); if (safe) conditions.push(`day >= '${safe}'`); }
+  if (to) { const safe = sanitizeFilter(to, VALID_DATE); if (safe) conditions.push(`day <= '${safe}'`); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const query = `
+    SELECT
+      model_name,
+      sum(call_count) AS calls,
+      sum(total_prompt_tokens) AS prompt_tokens,
+      sum(total_completion_tokens) AS completion_tokens,
+      sum(total_cost_usd) AS cost_usd
+    FROM daily_cost_mv
+    ${where}
+    GROUP BY model_name
+    ORDER BY cost_usd DESC
+    FORMAT JSON
+  `;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
 }

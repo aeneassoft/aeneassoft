@@ -2,6 +2,7 @@
 [PRODUCTNAME] Python SDK — Auto-instrumentation via monkey-patching
 USB-Stick Principle: 1 line init, everything works.
 """
+import os
 import time
 import uuid
 import threading
@@ -9,20 +10,20 @@ import httpx
 from functools import wraps
 from typing import Optional
 
-_proxy_url: str = "http://localhost:8080/ingest"
+_proxy_url: str = "https://proxy.aeneassoft.com/ingest"
 _api_key: str = ""
 _zero_data_retention: bool = False
 
 
 def init(
-    api_key: str,
-    proxy_url: str = "http://localhost:8080/ingest",
+    api_key: Optional[str] = None,
+    proxy_url: str = "https://proxy.aeneassoft.com/ingest",
     zero_data_retention: bool = False,
 ):
     """USB-Stick Principle: 1 line init, everything works."""
     global _proxy_url, _api_key, _zero_data_retention
     _proxy_url = proxy_url
-    _api_key = api_key
+    _api_key = api_key or os.environ.get("AGENTWATCH_API_KEY", "")
     _zero_data_retention = zero_data_retention
     # Share config with context module
     from agentwatch import context as _ctx
@@ -43,7 +44,7 @@ def _send_span_async(span: dict):
             httpx.post(
                 _proxy_url,
                 json=span,
-                headers={"X-[PRODUCTNAME]-API-Key": _api_key},
+                headers={"X-API-Key": _api_key},
                 timeout=0.5,
             )
         except Exception:

@@ -1,11 +1,18 @@
 // [PRODUCTNAME] Backend API Routes
 import { FastifyInstance } from 'fastify';
+import { randomBytes } from 'crypto';
 import {
   queryTraces,
   queryTraceSpans,
   queryMetrics,
   insertSpan,
   queryCausalLinks,
+  createApiKey,
+  listApiKeys,
+  queryCostDaily,
+  queryCostByAgent,
+  queryCostByModel,
+  TraceQueryParams,
 } from '../db/clickhouse';
 import { CausalGraphEngine } from '../engine/causal-graph';
 import { calculateGraphCost, costBreakdownByAgent } from '../engine/cost-attribution';
@@ -19,25 +26,38 @@ function isValidTraceId(id: string): boolean { return TRACE_ID_RE.test(id); }
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
-  // Health check
+  // Health check (no auth)
   fastify.get('/health', async () => ({
     status: 'ok',
     product: '[PRODUCTNAME]',
+    version: '1.0.0',
     timestamp: new Date().toISOString(),
   }));
 
-  // GET /api/traces — Last 50 root spans
+  // ── Traces ─────────────────────────────────────────────────────────────────
+
+  // GET /api/traces — paginated, filterable
   fastify.get('/api/traces', async (request, reply) => {
     try {
-      const traces = await queryTraces(CLICKHOUSE_URL, 50);
-      return reply.send({ traces });
+      const q = request.query as Record<string, string>;
+      const params: TraceQueryParams = {
+        limit: q.limit ? parseInt(q.limit, 10) : 50,
+        offset: q.offset ? parseInt(q.offset, 10) : 0,
+        status: q.status,
+        agent_id: q.agent_id,
+        model: q.model,
+        from: q.from,
+        to: q.to,
+      };
+      const traces = await queryTraces(CLICKHOUSE_URL, params.limit, params);
+      return reply.send({ traces, limit: params.limit, offset: params.offset });
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to query traces');
-      return reply.status(500).send({ error: 'Failed to query traces', details: err.message });
+      return reply.status(500).send({ error: 'Failed to query traces' });
     }
   });
 
-  // GET /api/traces/:trace_id/graph — Causal graph (nodes + edges + costs)
+  // GET /api/traces/:trace_id/graph — causal graph
   fastify.get<{ Params: { trace_id: string } }>('/api/traces/:trace_id/graph', async (request, reply) => {
     try {
       const { trace_id } = request.params;
@@ -67,11 +87,11 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
       });
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to build graph');
-      return reply.status(500).send({ error: 'Failed to build graph', details: err.message });
+      return reply.status(500).send({ error: 'Failed to build graph' });
     }
   });
 
-  // GET /api/traces/:trace_id/spans — All spans for a trace
+  // GET /api/traces/:trace_id/spans
   fastify.get<{ Params: { trace_id: string } }>('/api/traces/:trace_id/spans', async (request, reply) => {
     try {
       const { trace_id } = request.params;
@@ -84,7 +104,9 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
-  // GET /api/metrics — KPIs (total traces, error rate, cost, latency)
+  // ── Metrics ────────────────────────────────────────────────────────────────
+
+  // GET /api/metrics — KPIs
   fastify.get('/api/metrics', async (request, reply) => {
     try {
       const metrics = await queryMetrics(CLICKHOUSE_URL);
@@ -95,7 +117,47 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
-  // POST /api/ingest — Direct span ingestion (alternative to proxy)
+  // ── Cost (FinOps) ──────────────────────────────────────────────────────────
+
+  // GET /api/cost/daily — daily cost rollup
+  fastify.get('/api/cost/daily', async (request, reply) => {
+    try {
+      const q = request.query as Record<string, string>;
+      const data = await queryCostDaily(CLICKHOUSE_URL, q.from, q.to);
+      return reply.send({ cost: data });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to query daily cost');
+      return reply.status(500).send({ error: 'Failed to query daily cost' });
+    }
+  });
+
+  // GET /api/cost/by-agent — cost breakdown per agent
+  fastify.get('/api/cost/by-agent', async (request, reply) => {
+    try {
+      const q = request.query as Record<string, string>;
+      const data = await queryCostByAgent(CLICKHOUSE_URL, q.from, q.to);
+      return reply.send({ cost: data });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to query agent cost');
+      return reply.status(500).send({ error: 'Failed to query agent cost' });
+    }
+  });
+
+  // GET /api/cost/by-model — cost breakdown per model
+  fastify.get('/api/cost/by-model', async (request, reply) => {
+    try {
+      const q = request.query as Record<string, string>;
+      const data = await queryCostByModel(CLICKHOUSE_URL, q.from, q.to);
+      return reply.send({ cost: data });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to query model cost');
+      return reply.status(500).send({ error: 'Failed to query model cost' });
+    }
+  });
+
+  // ── Ingest ─────────────────────────────────────────────────────────────────
+
+  // POST /api/ingest — direct span ingestion
   fastify.post('/api/ingest', async (request, reply) => {
     try {
       const parsed = ATPSpanSchema.safeParse(request.body);
@@ -123,7 +185,9 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
-  // GET /api/traces/:trace_id/compliance-score — EU AI Act Readiness Score (0-100)
+  // ── Compliance ─────────────────────────────────────────────────────────────
+
+  // GET /api/traces/:trace_id/compliance-score
   fastify.get<{ Params: { trace_id: string } }>('/api/traces/:trace_id/compliance-score', async (request, reply) => {
     try {
       const { trace_id } = request.params;
@@ -132,11 +196,11 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send(calculateComplianceScore(trace_id, spans));
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to calculate compliance score');
-      return reply.status(500).send({ error: 'Failed to calculate compliance score', details: err.message });
+      return reply.status(500).send({ error: 'Failed to calculate compliance score' });
     }
   });
 
-  // GET /api/traces/:trace_id/compliance-report — PDF download
+  // GET /api/traces/:trace_id/compliance-report — signed PDF
   fastify.get<{ Params: { trace_id: string } }>('/api/traces/:trace_id/compliance-report', async (request, reply) => {
     try {
       const { trace_id } = request.params;
@@ -149,7 +213,48 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send(pdfBuffer);
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to generate compliance report');
-      return reply.status(500).send({ error: 'Failed to generate compliance report', details: err.message });
+      return reply.status(500).send({ error: 'Failed to generate compliance report' });
+    }
+  });
+
+  // ── API Key Management ─────────────────────────────────────────────────────
+
+  // POST /api/keys — create a new API key for an org
+  fastify.post('/api/keys', async (request, reply) => {
+    try {
+      const body = request.body as { org_id?: string; label?: string };
+      const orgId = body.org_id || request.orgId || 'default';
+      const label = body.label || '';
+      const rawKey = `aw_${randomBytes(32).toString('hex')}`;
+      await createApiKey(CLICKHOUSE_URL, rawKey, orgId, label);
+      return reply.status(201).send({
+        key: rawKey,
+        org_id: orgId,
+        label,
+        message: 'Store this key securely — it cannot be retrieved again.',
+      });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to create API key');
+      return reply.status(500).send({ error: 'Failed to create API key' });
+    }
+  });
+
+  // GET /api/keys — list API keys for current org (hashes only)
+  fastify.get('/api/keys', async (request, reply) => {
+    try {
+      const orgId = request.orgId || 'default';
+      const keys = await listApiKeys(CLICKHOUSE_URL, orgId);
+      return reply.send({
+        keys: keys.map((k: any) => ({
+          key_prefix: `aw_...${k.key_hash.substring(0, 8)}`,
+          label: k.label,
+          scopes: k.scopes,
+          created_at: k.created_at,
+        })),
+      });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to list API keys');
+      return reply.status(500).send({ error: 'Failed to list API keys' });
     }
   });
 }

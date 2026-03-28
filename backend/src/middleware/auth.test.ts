@@ -1,12 +1,11 @@
 // Auth middleware tests — valid key → 200, missing key → 401
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import Fastify from 'fastify';
 import { registerAuthMiddleware } from './auth';
 
 const TEST_API_KEY = 'test-secret-key-12345';
 
 async function buildApp(apiKey?: string) {
-  // Set env before building so middleware picks it up
   if (apiKey) {
     process.env.API_KEY = apiKey;
   } else {
@@ -16,8 +15,7 @@ async function buildApp(apiKey?: string) {
   const app = Fastify();
   await registerAuthMiddleware(app);
 
-  // Minimal /api/test route for probing
-  app.get('/api/test', async () => ({ ok: true }));
+  app.get('/api/test', async (request) => ({ ok: true, orgId: request.orgId }));
   app.get('/health', async () => ({ status: 'ok' }));
 
   await app.ready();
@@ -46,9 +44,11 @@ describe('Auth Middleware', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/test',
-      headers: { 'x-[productname]-api-key': TEST_API_KEY },
+      headers: { 'x-api-key': TEST_API_KEY },
     });
     expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.orgId).toBe('default');
     await app.close();
   });
 
@@ -57,7 +57,7 @@ describe('Auth Middleware', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/test',
-      headers: { 'x-[productname]-api-key': 'wrong-key' },
+      headers: { 'x-api-key': 'wrong-key' },
     });
     expect(res.statusCode).toBe(401);
     await app.close();
