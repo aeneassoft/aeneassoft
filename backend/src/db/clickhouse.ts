@@ -237,9 +237,33 @@ export async function queryTraces(url: string, limit = 20, params: TraceQueryPar
   // Count total matching traces (for pagination)
   const where = conditions.join(' AND ');
   const countQuery = `SELECT count() as total FROM agent_spans WHERE ${where} FORMAT JSON`;
-  const countRes = await fetch(`${url}/?database=${db}`, { method: 'POST', body: countQuery });
+
+  // Batch span counts per trace_id (single query, no N+1)
+  const traceIds = traces.map((t: any) => t.trace_id).filter(Boolean);
+  const spanCountQuery = traceIds.length > 0
+    ? `SELECT trace_id, count() as span_count FROM agent_spans WHERE trace_id IN (${traceIds.map((id: string) => `'${id}'`).join(',')}) GROUP BY trace_id FORMAT JSON`
+    : null;
+
+  // Fire both queries in parallel
+  const [countRes, spanCountRes] = await Promise.all([
+    fetch(`${url}/?database=${db}`, { method: 'POST', body: countQuery }),
+    spanCountQuery ? fetch(`${url}/?database=${db}`, { method: 'POST', body: spanCountQuery }) : Promise.resolve(null),
+  ]);
+
   const countData = (await countRes.json()) as any;
   const total = Number(countData.data?.[0]?.total) || traces.length;
+
+  // Attach span_count to each trace
+  if (spanCountRes) {
+    const spanData = (await spanCountRes.json()) as any;
+    const countMap = new Map<string, number>();
+    for (const row of (spanData.data || [])) {
+      countMap.set(row.trace_id, Number(row.span_count) || 0);
+    }
+    for (const trace of traces) {
+      trace.span_count = countMap.get(trace.trace_id) || 1;
+    }
+  }
 
   return { traces, total };
 }
