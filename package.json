@@ -5,6 +5,6 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "dev": "concurrently \"npm run dev --workspace=proxy\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\""
+    "dev": "concurrently \"npm run dev --workspace=proxy\" \"npm run dev --workspace=backend\""
   }
 }

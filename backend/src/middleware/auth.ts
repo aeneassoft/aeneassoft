@@ -3,19 +3,20 @@
 // Protects all /api/* routes; /health is exempt.
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 
 const API_KEY_HEADER = 'x-[productname]-api-key';
 
 /**
- * Returns the SHA-256 hex digest of a string.
+ * Returns the SHA-256 digest of a string as a Buffer.
  */
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
+function sha256buf(value: string): Buffer {
+  return createHash('sha256').update(value).digest();
 }
 
 /**
  * Validates the incoming API key against the configured secret.
+ * Uses timingSafeEqual to prevent timing attacks.
  * Returns true if auth passes, false otherwise.
  */
 function isAuthorized(request: FastifyRequest): boolean {
@@ -27,8 +28,8 @@ function isAuthorized(request: FastifyRequest): boolean {
   const providedKey = request.headers[API_KEY_HEADER] as string | undefined;
   if (!providedKey) return false;
 
-  // Constant-time comparison via SHA-256 to prevent timing attacks
-  return sha256(providedKey) === sha256(configuredKey);
+  // timingSafeEqual requires same-length buffers — comparing hashes guarantees that
+  return timingSafeEqual(sha256buf(providedKey), sha256buf(configuredKey));
 }
 
 /**
@@ -37,8 +38,9 @@ function isAuthorized(request: FastifyRequest): boolean {
  */
 export async function registerAuthMiddleware(fastify: FastifyInstance): Promise<void> {
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Exempt health check and non-api routes
+    // Exempt health check, non-api routes, and public demo routes
     if (!request.url.startsWith('/api/')) return;
+    if (request.url.startsWith('/api/demo')) return;
 
     if (!isAuthorized(request)) {
       return reply.status(401).send({

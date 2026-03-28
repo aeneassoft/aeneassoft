@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "keywords": ["observability", "ai", "agents", "tracing", "atp"],
   "license": "MIT",

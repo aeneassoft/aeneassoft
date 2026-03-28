@@ -19,21 +19,6 @@ services:
       timeout: 5s
       retries: 10
 
-  postgres:
-    image: postgres:15-alpine
-    ports: ["127.0.0.1:5432:5432"]
-    environment:
-      POSTGRES_DB: "productname"
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     ports: ["127.0.0.1:9092:9092"]
@@ -65,14 +50,12 @@ services:
     environment:
       CLICKHOUSE_URL: "http://clickhouse:8123"
       CLICKHOUSE_DB: "productname"
-      POSTGRES_URL: "postgresql://postgres:postgres@postgres:5432/productname"
       KAFKA_BROKERS: "kafka:9092"
       ZERO_DATA_RETENTION: "false"
       DATA_RETENTION_DAYS: "30"
       API_KEY: "${API_KEY:-}"
     depends_on:
       clickhouse: { condition: service_healthy }
-      postgres: { condition: service_healthy }
       kafka: { condition: service_healthy }
 
   proxy:
@@ -88,16 +71,5 @@ services:
     depends_on:
       kafka: { condition: service_healthy }
 
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    ports: ["3000:3000"]
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:3001"
-    depends_on:
-      - backend
-
 volumes:
   clickhouse_data:
-  postgres_data:

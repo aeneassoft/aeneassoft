@@ -1,168 +1,219 @@
-# [PRODUCTNAME]
+# [PRODUCTNAME] by Aeneassoft
+
+> Works with every AI framework. Automatically.
+> 2 lines of code. Zero config. Every agent traced.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-
-**[PRODUCTNAME]** is an Agent Observability platform that monitors, debugs, and audits multi-agent AI systems. It uses the Agent Trace Protocol (ATP) — an open NDJSON-based telemetry standard designed specifically for AI agent workflows.
 
 ---
 
-## Quickstart
-
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-
-That's it.
-
-### Windows
-
-```cmd
-git clone <repo-url>
-cd [productname]-mvp
-setup.bat
-```
-
-### Mac / Linux
+## Install
 
 ```bash
-git clone <repo-url>
-cd [productname]-mvp
-chmod +x setup.sh && ./setup.sh
+pip install agentwatch
 ```
 
-The setup script will:
-1. Check that Docker is running
-2. Create `.env` automatically
-3. Build and start all services
-4. Wait until everything is healthy
-5. Run the demo and open the dashboard
-
-### View the Dashboard
-
-Open [http://localhost:3000](http://localhost:3000) to see:
-- **KPI Cards** — Total traces, error rate, cost, latency
-- **Trace List** — Click any trace to view the causal graph
-- **Causal Graph** — Interactive visualization with dagre layout
-- **EU AI Act Report** — Download compliance PDF for any trace
-
----
-
-## USB-Stick Integration
-
-### Python SDK (2 lines)
+## Usage
 
 ```python
 import agentwatch
 agentwatch.init(api_key="your-key")
 
-# That's it! All OpenAI and Anthropic calls are now traced.
+# Done. Every LLM call is now traced automatically.
+import openai
+client = openai.OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}]
+)
 ```
 
-### Node.js SDK (coming soon)
+Traces are sent to `http://localhost:8080/ingest` by default. Query them via the REST API:
+
+```bash
+curl -H "X-API-Key: your-key" http://localhost:3001/api/traces
+```
+
+---
+
+## Self-Host
+
+**Requirements:** Docker + Docker Compose
+
+```bash
+git clone https://github.com/aeneassoft/productname
+cd productname
+cp .env.example .env    # set API_KEY
+docker compose up -d
+docker compose ps       # verify all 4 services healthy
+curl http://localhost:3001/health
+```
+
+4 services:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| **proxy** | 8080 | Intercepts AI requests, forwards spans to Kafka |
+| **backend** | 3001 | REST API — traces, graphs, compliance reports |
+| **kafka** | 9092 | Message queue (proxy → backend) |
+| **clickhouse** | 8123 | Trace storage (30-day TTL by default) |
+
+---
+
+## REST API
+
+All `/api/*` endpoints require `X-API-Key: <your-key>` header.
+
+```
+GET  /health                                  # no auth required
+GET  /api/traces                              # last 50 traces
+GET  /api/traces/:trace_id/spans             # all spans for a trace
+GET  /api/traces/:trace_id/graph             # causal graph (nodes + edges + costs)
+GET  /api/traces/:trace_id/compliance-score  # EU AI Act readiness score (0-100)
+GET  /api/traces/:trace_id/compliance-report # PDF (Article 12 + 13)
+GET  /api/metrics                             # KPIs (error rate, cost, latency)
+POST /api/ingest                              # direct span ingestion (ATP format)
+```
+
+---
+
+## SDK — Python
+
+```python
+import agentwatch
+
+agentwatch.init(
+    api_key="your-key",
+    proxy_url="http://localhost:8080/ingest",  # default
+    zero_data_retention=False,                 # True = GDPR strict mode
+)
+```
+
+**Tag calls with agent identity:**
+
+```python
+with agentwatch.agent("ResearchBot", role="Researcher"):
+    result = openai_client.chat.completions.create(...)
+    # span.agent_name = "ResearchBot" in the trace
+```
+
+**Group calls into a named trace:**
+
+```python
+with agentwatch.trace("my-pipeline", agent_id="pipeline-1") as trace_id:
+    step1 = openai_client.chat.completions.create(...)
+    step2 = anthropic_client.messages.create(...)
+    # Both calls share the same trace_id
+```
+
+## SDK — Node.js
 
 ```typescript
-import { init } from '@productname/sdk-node';
+import { init } from '@aeneassoft/sdk-node';
 init({ apiKey: 'your-key' });
+// All LLM calls are now traced
 ```
 
 ---
 
-## Architecture
+## Framework Compatibility
 
+| Framework | How it's traced |
+|-----------|----------------|
+| OpenAI SDK | SDK-level patch |
+| Anthropic SDK | SDK-level patch |
+| LangChain | via OpenAI/Anthropic SDK |
+| CrewAI | via OpenAI/Anthropic SDK |
+| AutoGen | via OpenAI/Anthropic SDK |
+| LlamaIndex | via OpenAI/Anthropic SDK |
+| Groq | HTTP interceptor |
+| Mistral | HTTP interceptor |
+| Google Gemini | HTTP interceptor |
+| Azure OpenAI | HTTP interceptor |
+| Ollama | HTTP interceptor |
+| Any httpx/requests/aiohttp client | HTTP interceptor |
+
+---
+
+## GDPR / Zero Data Retention
+
+```python
+agentwatch.init(api_key="key", zero_data_retention=True)
+# Prompts and outputs are NEVER stored — only timestamps, token counts, latency.
 ```
-Your App  -->  [PRODUCTNAME] Proxy (8080)  -->  OpenAI / Anthropic
-                    |
-                    v
-                Kafka (agent-traces topic)
-                    |
-                    v
-              Backend API (3001)  -->  ClickHouse (traces)
-                    |                  PostgreSQL (metadata)
-                    v
-              Next.js Dashboard (3000)
+
+Set `ZERO_DATA_RETENTION=true` in `.env` to enforce server-side.
+
+---
+
+## EU AI Act Compliance
+
+Every span is automatically evaluated against Article 12 (record-keeping) and Article 13 (transparency). Get a readiness score and downloadable PDF report:
+
+```bash
+# Score (0-100)
+curl -H "X-API-Key: key" localhost:3001/api/traces/:id/compliance-score
+
+# PDF report
+curl -H "X-API-Key: key" localhost:3001/api/traces/:id/compliance-report -o report.pdf
 ```
 
 ---
 
-## Open Source vs Enterprise
+## ATP Schema (Open Standard)
 
-| Feature | Open Source (MIT) | Enterprise |
-|---|:---:|:---:|
-| ATP Schema & Protocol | x | x |
-| API Proxy (OpenAI + Anthropic) | x | x |
-| Python & Node.js SDKs | x | x |
-| Causal Graph Visualization | x | x |
-| EU AI Act Compliance Export | x | x |
-| Cost Attribution Engine | x | x |
-| Self-Hosted Deployment | x | x |
-| Managed Cloud Hosting | | x |
-| Priority Support & SLA | | x |
-| Advanced Alerting | | x |
-| RBAC & SSO | | x |
-| Multi-Tenant Isolation | | x |
+```bash
+npm install @aeneassoft/atp-schema
+```
+
+Agent Trace Protocol — an open NDJSON telemetry standard for multi-agent AI. See [`packages/atp-schema/README.md`](packages/atp-schema/README.md).
 
 ---
 
-## Key Features
+## Examples
 
-### Agent Trace Protocol (ATP)
-Open NDJSON-based telemetry standard with:
-- Parent-child span relationships
-- Causal links (REQUIRES, FOLLOWS_FROM, DELEGATES_TO, etc.)
-- Model inference metadata (tokens, cost, latency)
-- EU AI Act compliance flags
-- Zero Data Retention mode for GDPR compliance
+See [`examples/`](examples/):
 
-### Causal Graph Engine
-- DAG reconstruction from out-of-order spans
-- Orphan buffer with 5-second timeout
-- React Flow visualization with dagre layout
-- Multi-parent edge support (causal links as dashed arrows)
-
-### Cost Attribution
-- Per-span cost calculation using published pricing
-- Breakdown by agent, model, and task
-- Support for GPT-4o, Claude Sonnet/Opus, and more
-
-### EU AI Act Compliance
-- Automatic PDF report generation
-- Article 12 (event logging) and Article 13 (transparency) coverage
-- SHA-256 integrity hash for audit trail
-- Legal disclaimer included
+- [`examples/python/basic.py`](examples/python/basic.py)
+- [`examples/python/with_context.py`](examples/python/with_context.py) — agent tags
+- [`examples/python/crewai_example.py`](examples/python/crewai_example.py) — CrewAI zero-config
+- [`examples/python/multi_provider.py`](examples/python/multi_provider.py) — OpenAI + Anthropic + Groq
+- [`examples/node/basic.ts`](examples/node/basic.ts)
+- [`examples/node/with_trace.ts`](examples/node/with_trace.ts)
 
 ---
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run all tests
 npm run test --workspaces --if-present
-python -m pytest sdks/python/tests
+pytest sdks/python/tests -v
 
-# Start in dev mode (requires Docker services running)
 docker compose up -d
-npm run dev
+npm run dev   # starts proxy + backend in watch mode
 ```
 
 ---
 
-## Tech Stack
+## Open Source vs Enterprise
 
-| Component | Technology |
-|---|---|
-| Proxy | Fastify (TypeScript) |
-| Backend API | Fastify (TypeScript) |
-| Frontend | Next.js 14 + TailwindCSS + React Flow |
-| Python SDK | Pydantic + monkey-patching |
-| Queue | Kafka (KRaft mode) |
-| Trace DB | ClickHouse 23.8 |
-| Meta DB | PostgreSQL 15 + Prisma |
+| Feature | MIT | Enterprise |
+|---------|:---:|:----------:|
+| ATP Schema & Protocol | ✓ | ✓ |
+| API Proxy | ✓ | ✓ |
+| Python & Node.js SDKs | ✓ | ✓ |
+| Causal Graph API | ✓ | ✓ |
+| EU AI Act Compliance Reports | ✓ | ✓ |
+| Cost Attribution | ✓ | ✓ |
+| Self-Hosted | ✓ | ✓ |
+| Managed Cloud | | ✓ |
+| Priority Support + SLA | | ✓ |
+| Advanced Alerting | | ✓ |
+| RBAC + SSO | | ✓ |
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+MIT. See [LICENSE](LICENSE). Built by [Aeneassoft](https://aeneassoft.com).
