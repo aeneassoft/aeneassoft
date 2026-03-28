@@ -29,6 +29,11 @@ def init(
     _ctx._configure(proxy_url, api_key, zero_data_retention)
     _patch_openai()
     _patch_anthropic()
+    # Install universal HTTP interceptor — catches every other framework
+    from agentwatch.interceptor import patch_all, mark_sdk_handled
+    mark_sdk_handled("api.openai.com")
+    mark_sdk_handled("api.anthropic.com")
+    patch_all()
 
 
 def _send_span_async(span: dict):
@@ -55,16 +60,26 @@ def _patch_openai():
 
         @wraps(original_sync)
         def patched_sync(self, *args, **kwargs):
+            from agentwatch.interceptor import set_sdk_active
+            set_sdk_active(True)
             start = time.time()
-            response = original_sync(self, *args, **kwargs)
+            try:
+                response = original_sync(self, *args, **kwargs)
+            finally:
+                set_sdk_active(False)
             end = time.time()
             _emit_openai_span(response, kwargs, start, end)
             return response
 
         @wraps(original_async)
         async def patched_async(self, *args, **kwargs):
+            from agentwatch.interceptor import set_sdk_active
+            set_sdk_active(True)
             start = time.time()
-            response = await original_async(self, *args, **kwargs)
+            try:
+                response = await original_async(self, *args, **kwargs)
+            finally:
+                set_sdk_active(False)
             end = time.time()
             _emit_openai_span(response, kwargs, start, end)
             return response
@@ -84,16 +99,26 @@ def _patch_anthropic():
 
         @wraps(original_sync)
         def patched_sync(self, *args, **kwargs):
+            from agentwatch.interceptor import set_sdk_active
+            set_sdk_active(True)
             start = time.time()
-            response = original_sync(self, *args, **kwargs)
+            try:
+                response = original_sync(self, *args, **kwargs)
+            finally:
+                set_sdk_active(False)
             end = time.time()
             _emit_anthropic_span(response, kwargs, start, end)
             return response
 
         @wraps(original_async)
         async def patched_async(self, *args, **kwargs):
+            from agentwatch.interceptor import set_sdk_active
+            set_sdk_active(True)
             start = time.time()
-            response = await original_async(self, *args, **kwargs)
+            try:
+                response = await original_async(self, *args, **kwargs)
+            finally:
+                set_sdk_active(False)
             end = time.time()
             _emit_anthropic_span(response, kwargs, start, end)
             return response

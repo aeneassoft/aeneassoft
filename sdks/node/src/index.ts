@@ -15,6 +15,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { configure, patchOpenAI, patchAnthropic } from './patcher';
 import { runWithContext, currentTraceId, newSpanId } from './context';
+import { installInterceptor, markSdkHandled, configureInterceptor } from './interceptor';
 
 export { currentTraceId };
 
@@ -27,8 +28,14 @@ export interface InitOptions {
 export function init(options: InitOptions): void {
   const { apiKey, ingestUrl = 'http://localhost:8080/ingest', zeroDataRetention = false } = options;
   configure(ingestUrl, apiKey, zeroDataRetention);
+  configureInterceptor(ingestUrl, apiKey, zeroDataRetention);
   patchOpenAI();
   patchAnthropic();
+  // SDK-level patchers handle these — mark to avoid duplicate spans
+  markSdkHandled('api.openai.com');
+  markSdkHandled('api.anthropic.com');
+  // Universal interceptor catches everything else (Groq, Mistral, Gemini, Ollama, ...)
+  installInterceptor();
 }
 
 export interface TraceOptions {

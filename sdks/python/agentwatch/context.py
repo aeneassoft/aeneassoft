@@ -8,7 +8,8 @@ import time
 import threading
 import httpx
 from contextlib import contextmanager
-from typing import Optional, Generator
+from contextvars import ContextVar
+from typing import Dict, Optional, Generator
 
 # Thread-local storage so concurrent traces don't interfere
 _local = threading.local()
@@ -44,6 +45,47 @@ def _set_context(trace_id: str, span_id: str) -> None:
 def _clear_context() -> None:
     _local.trace_id = None
     _local.span_id = None
+
+
+# ── Agent context — asyncio-safe via ContextVar ────────────────────────────────
+# Carries agent_name / agent_role / agent_id through async call chains.
+# Used by the HTTP interceptor to annotate auto-detected spans.
+_agent_ctx: ContextVar[Dict[str, str]] = ContextVar("_agent_ctx", default={})
+
+
+def current_agent() -> Dict[str, str]:
+    """Returns the active agent context dict, or empty dict if none."""
+    return _agent_ctx.get()
+
+
+@contextmanager
+def agent(
+    name: str,
+    role: str = "Agent",
+    agent_id: Optional[str] = None,
+):
+    """
+    Context manager that tags all HTTP-intercepted AI calls with agent identity.
+    Works with sync and async code (uses contextvars, Python 3.7+).
+
+    Usage:
+        with agentwatch.agent("ResearcherBot", role="Researcher"):
+            # All OpenAI/Anthropic/Groq/... calls in this block get:
+            # agent_name="ResearcherBot", agent_role="Researcher"
+            result = openai.chat.completions.create(...)
+
+    Nesting is supported — inner agent() overrides outer for its scope.
+    """
+    ctx = {
+        "agent_name": name,
+        "agent_role": role,
+        "agent_id": agent_id or name.lower().replace(" ", "-"),
+    }
+    token = _agent_ctx.set(ctx)
+    try:
+        yield ctx
+    finally:
+        _agent_ctx.reset(token)
 
 
 def _send_span(span: dict) -> None:
