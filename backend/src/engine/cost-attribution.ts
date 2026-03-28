@@ -14,14 +14,22 @@ const DEFAULT_PRICING: Record<string, { prompt: number; completion: number }> = 
   'claude-sonnet-4-6': { prompt: 3.00 / 1_000_000, completion: 15.00 / 1_000_000 },
   'claude-haiku-4-5':  { prompt: 0.80 / 1_000_000, completion: 4.00 / 1_000_000 },
   // Mistral
-  'mistral-large':     { prompt: 4.00 / 1_000_000, completion: 12.00 / 1_000_000 },
-  'mistral-small':     { prompt: 1.00 / 1_000_000, completion:  3.00 / 1_000_000 },
+  'mistral-large':          { prompt: 4.00 / 1_000_000, completion: 12.00 / 1_000_000 },
+  'mistral-large-latest':   { prompt: 4.00 / 1_000_000, completion: 12.00 / 1_000_000 },
+  'mistral-small':          { prompt: 1.00 / 1_000_000, completion:  3.00 / 1_000_000 },
+  'mistral-small-latest':   { prompt: 1.00 / 1_000_000, completion:  3.00 / 1_000_000 },
+  // Groq (hosted models — Groq pricing, not model-native pricing)
+  'llama3-70b-8192':        { prompt: 0.59 / 1_000_000, completion: 0.79 / 1_000_000 },
+  'llama3-8b-8192':         { prompt: 0.05 / 1_000_000, completion: 0.08 / 1_000_000 },
+  'llama3.1:8b':            { prompt: 0.00 / 1_000_000, completion: 0.00 / 1_000_000 }, // Ollama local
+  'mixtral-8x7b-32768':     { prompt: 0.24 / 1_000_000, completion: 0.24 / 1_000_000 },
+  'gemma2-9b-it':           { prompt: 0.20 / 1_000_000, completion: 0.20 / 1_000_000 },
   // Cohere
-  'command-r-plus':    { prompt: 3.00 / 1_000_000, completion: 15.00 / 1_000_000 },
-  'command-r':         { prompt: 0.50 / 1_000_000, completion:  1.50 / 1_000_000 },
+  'command-r-plus':         { prompt: 3.00 / 1_000_000, completion: 15.00 / 1_000_000 },
+  'command-r':              { prompt: 0.50 / 1_000_000, completion:  1.50 / 1_000_000 },
   // Google
-  'gemini-1.5-pro':    { prompt: 3.50 / 1_000_000, completion: 10.50 / 1_000_000 },
-  'gemini-1.5-flash':  { prompt: 0.075 / 1_000_000, completion: 0.30 / 1_000_000 },
+  'gemini-1.5-pro':         { prompt: 3.50 / 1_000_000, completion: 10.50 / 1_000_000 },
+  'gemini-1.5-flash':       { prompt: 0.075 / 1_000_000, completion: 0.30 / 1_000_000 },
 };
 
 // Merge with env-supplied overrides (no recompile needed for new models)

@@ -12,9 +12,13 @@ interface GraphNode {
     operation: string;
     status: string;
     cost: number;
+    cost_usd: number;
+    tokens: number;
     latencyMs: number;
     provider?: string;
     modelName?: string;
+    decision_reasoning?: string;
+    agent_name?: string;
     span: any;
   };
   position: { x: number; y: number };
@@ -166,11 +170,15 @@ export class CausalGraphEngine {
           agentName: span.agent_name,
           agentRole: span.agent_role,
           operation: span.name,
-          status: span.status?.code || 'UNSET',
+          status: span.status?.code || span.status_code || 'UNSET',
           cost,
-          latencyMs: span.model_inference?.latency_ms || 0,
-          provider: span.model_inference?.provider,
-          modelName: span.model_inference?.model_name,
+          latencyMs: span.model_inference?.latency_ms || span.latency_ms || 0,
+          provider: span.model_inference?.provider || span.provider,
+          modelName: span.model_inference?.model_name || span.model_name,
+          tokens: (span.model_inference?.prompt_tokens || span.prompt_tokens || 0) + (span.model_inference?.completion_tokens || span.completion_tokens || 0),
+          cost_usd: cost || span.accumulated_cost_usd || 0,
+          decision_reasoning: span.decision_reasoning,
+          agent_name: span.agent_name,
           span,
         },
       });
@@ -180,7 +188,8 @@ export class CausalGraphEngine {
   }
 
   private _calculateSpanCost(span: any): number {
-    if (!span.model_inference?.model_name) return 0;
+    const modelName = span.model_inference?.model_name || span.model_name;
+    if (!modelName) return span.accumulated_cost_usd || 0;
     const { calculateSpanCost } = require('./cost-attribution');
     return calculateSpanCost(span);
   }

@@ -191,7 +191,7 @@ function sanitizeFilter(value: string, pattern: RegExp): string | null {
   return pattern.test(value) ? value : null;
 }
 
-export async function queryTraces(url: string, limit = 50, params: TraceQueryParams = {}): Promise<any[]> {
+export async function queryTraces(url: string, limit = 20, params: TraceQueryParams = {}): Promise<{ traces: any[]; total: number }> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
   const conditions = ['parent_span_id IS NULL'];
   if (params.status) {
@@ -232,7 +232,16 @@ export async function queryTraces(url: string, limit = 50, params: TraceQueryPar
   });
 
   const data = (await res.json()) as any;
-  return data.data || [];
+  const traces = data.data || [];
+
+  // Count total matching traces (for pagination)
+  const where = conditions.join(' AND ');
+  const countQuery = `SELECT count() as total FROM agent_spans WHERE ${where} FORMAT JSON`;
+  const countRes = await fetch(`${url}/?database=${db}`, { method: 'POST', body: countQuery });
+  const countData = (await countRes.json()) as any;
+  const total = Number(countData.data?.[0]?.total) || traces.length;
+
+  return { traces, total };
 }
 
 // Strict allowlist: only [0-9a-f]{32} permitted as trace/span IDs

@@ -41,7 +41,7 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     try {
       const q = request.query as Record<string, string>;
       const params: TraceQueryParams = {
-        limit: q.limit ? parseInt(q.limit, 10) : 50,
+        limit: q.limit ? parseInt(q.limit, 10) : 20,
         offset: q.offset ? parseInt(q.offset, 10) : 0,
         status: q.status,
         agent_id: q.agent_id,
@@ -49,8 +49,8 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
         from: q.from,
         to: q.to,
       };
-      const traces = await queryTraces(CLICKHOUSE_URL, params.limit, params);
-      return reply.send({ traces, limit: params.limit, offset: params.offset });
+      const { traces, total } = await queryTraces(CLICKHOUSE_URL, params.limit, params);
+      return reply.send({ traces, total, limit: params.limit, offset: params.offset });
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to query traces');
       return reply.status(500).send({ error: 'Failed to query traces' });
