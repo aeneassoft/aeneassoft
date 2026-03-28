@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentwatch"
+name = "aeneas-agentwatch"
 version = "0.1.0"
-description = "[PRODUCTNAME] Python SDK — Auto-instrumentation for AI agent observability"
+description = "AI Agent Observability SDK — Auto-instrumentation for every LLM framework"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 dependencies = [
