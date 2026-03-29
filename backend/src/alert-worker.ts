@@ -14,6 +14,7 @@ async function triggerAlert(rule: any, value: number): Promise<void> {
   await saveAlertHistory(CLICKHOUSE_URL, {
     id: randomUUID(),
     rule_id: rule.id,
+    rule_name: rule.name,
     org_id: rule.org_id,
     value,
     message,

@@ -42,7 +42,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
   // POST /auth/register
   fastify.post('/auth/register', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { email, password } = request.body as { email?: string; password?: string };
+    const { email, password, name } = request.body as { email?: string; password?: string; name?: string };
 
     if (!email || !EMAIL_RE.test(email)) {
       return reply.status(400).send({ error: 'Invalid email format' });
@@ -61,7 +61,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     const userId = randomUUID();
     const orgId = randomUUID();
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    await createUser(CLICKHOUSE_URL, userId, email, passwordHash, orgId);
+    await createUser(CLICKHOUSE_URL, userId, email, passwordHash, orgId, name);
 
     // Create first API key
     const rawKey = `aw_${randomBytes(32).toString('hex')}`;
@@ -76,7 +76,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to send welcome email'));
 
     return reply.status(201).send({
-      user: { id: userId, email, org_id: orgId, plan: 'free' },
+      id: userId, email, name: name || null, org_id: orgId, plan: 'free',
       token,
       api_key: rawKey,
       message: 'Account created. Store your API key securely — it cannot be retrieved again.',
@@ -170,15 +170,15 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       return reply.status(404).send({ error: 'User not found' });
     }
 
+    // Return user properties at top level (frontend expects flat { email, name, plan })
     return reply.send({
-      user: {
-        id: user.id,
-        email: user.email,
-        org_id: user.org_id,
-        plan: user.plan,
-        stripe_customer_id: user.stripe_customer_id,
-        created_at: user.created_at,
-      },
+      id: user.id,
+      email: user.email,
+      name: user.name || null,
+      plan: user.plan,
+      org_id: user.org_id,
+      stripe_customer_id: user.stripe_customer_id,
+      created_at: user.created_at,
     });
   });
 

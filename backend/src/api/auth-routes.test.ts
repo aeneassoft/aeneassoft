@@ -74,8 +74,8 @@ describe('Auth Routes', () => {
 
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body.user.email).toBe('new@example.com');
-    expect(body.user.plan).toBe('free');
+    expect(body.email).toBe('new@example.com');
+    expect(body.plan).toBe('free');
     expect(body.token).toBeDefined();
     expect(body.api_key).toMatch(/^aw_/);
     expect(res.headers['set-cookie']).toContain('token=');
@@ -261,8 +261,8 @@ describe('Auth Routes', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.user.email).toBe('test@example.com');
-    expect(body.user.plan).toBe('free');
+    expect(body.email).toBe('test@example.com');
+    expect(body.plan).toBe('free');
     await app.close();
   });
 

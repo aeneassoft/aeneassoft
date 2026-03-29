@@ -49,10 +49,10 @@ export async function registerBillingRoutes(fastify: FastifyInstance): Promise<v
 
     return reply.send({
       plan: user.plan,
-      current_period_end,
+      renewsAt: current_period_end,
       usage: {
-        traces_this_month: usage.traces_this_month,
-        traces_limit: PLAN_LIMITS[user.plan] ?? PLAN_LIMITS.free,
+        traces: usage.traces_this_month,
+        limit: PLAN_LIMITS[user.plan] ?? PLAN_LIMITS.free,
         cost_this_month_usd: usage.cost_this_month_usd,
       },
       stripe_customer_id: user.stripe_customer_id || null,

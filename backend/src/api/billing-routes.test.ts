@@ -29,6 +29,7 @@ vi.mock('../db/clickhouse', () => ({
   deleteAlertRule: vi.fn(),
   getAlertHistory: vi.fn(),
   updateAlertIsActive: vi.fn(),
+  getAlertRuleById: vi.fn(),
   listApiKeys: vi.fn(),
   createApiKey: vi.fn(),
   deleteApiKey: vi.fn(),
@@ -88,10 +89,10 @@ describe('GET /api/billing', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.plan).toBe('pro');
-    expect(body.usage.traces_this_month).toBe(1234);
-    expect(body.usage.traces_limit).toBe(100_000);
+    expect(body.usage.traces).toBe(1234);
+    expect(body.usage.limit).toBe(100_000);
     expect(body.usage.cost_this_month_usd).toBe(0.42);
-    expect(body.current_period_end).toBeNull();
+    expect(body.renewsAt).toBeNull();
     await app.close();
   });
 
@@ -108,19 +109,20 @@ describe('PATCH /api/alerts/:id', () => {
 
   it('PATCH /api/alerts/:id — toggle off (success)', async () => {
     (db.updateAlertIsActive as any).mockResolvedValue(undefined);
+    (db.getAlertRuleById as any).mockResolvedValue(null); // triggers synthetic fallback
 
     const app = await buildApp();
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/alerts/550e8400-e29b-41d4-a716-446655440000',
       headers: { authorization: `Bearer ${validToken()}` },
-      payload: { is_active: 0 },
+      payload: { enabled: false },
     });
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.success).toBe(true);
-    expect(body.is_active).toBe(0);
+    expect(body.id).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(body.enabled).toBe(false);
     expect(db.updateAlertIsActive).toHaveBeenCalledWith(
       expect.any(String),
       '550e8400-e29b-41d4-a716-446655440000',

@@ -39,12 +39,12 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
 
   // ── Traces ─────────────────────────────────────────────────────────────────
 
-  // GET /api/traces — paginated, filterable
+  // GET /api/traces — returns Trace[] array (frontend-compatible format)
   fastify.get('/api/traces', async (request, reply) => {
     try {
       const q = request.query as Record<string, string>;
       const params: TraceQueryParams = {
-        limit: q.limit ? parseInt(q.limit, 10) : 20,
+        limit: q.limit ? parseInt(q.limit, 10) : 50,
         offset: q.offset ? parseInt(q.offset, 10) : 0,
         status: q.status,
         agent_id: q.agent_id,
@@ -52,8 +52,20 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
         from: q.from,
         to: q.to,
       };
-      const { traces, total } = await queryTraces(CLICKHOUSE_URL, params.limit, params);
-      return reply.send({ traces, total, limit: params.limit, offset: params.offset });
+      const { traces } = await queryTraces(CLICKHOUSE_URL, params.limit, params);
+      // Transform to frontend Trace shape
+      const result = traces.map((t: any) => ({
+        id: t.trace_id,
+        name: t.name,
+        status: t.status_code === 'ERROR' ? 'error' : t.status_code === 'OK' ? 'ok' : 'running',
+        tokens: (Number(t.prompt_tokens) || 0) + (Number(t.completion_tokens) || 0),
+        cost: Number(t.accumulated_cost_usd) || 0,
+        latency: (Number(t.latency_ms) || 0) / 1000,
+        model: t.model_name || null,
+        createdAt: t.start_time,
+        span_count: t.span_count,
+      }));
+      return reply.send(result);
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to query traces');
       return reply.status(500).send({ error: 'Failed to query traces' });
@@ -112,8 +124,16 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/metrics — KPIs
   fastify.get('/api/metrics', async (request, reply) => {
     try {
-      const metrics = await queryMetrics(CLICKHOUSE_URL);
-      return reply.send({ ...metrics, period: '24h' });
+      const m = await queryMetrics(CLICKHOUSE_URL);
+      return reply.send({
+        totalTraces: Number(m.total_traces) || 0,
+        totalTokens: Number(m.total_tokens) || 0,
+        totalCost: Number(m.total_cost_usd) || 0,
+        avgLatency: (Number(m.avg_latency_ms) || 0) / 1000,
+        tracesThisMonth: Number(m.traces_this_month) || 0,
+        errorRate: Number(m.error_rate) || 0,
+        period: '24h',
+      });
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to query metrics');
       return reply.status(500).send({ error: 'Failed to query metrics' });
@@ -230,10 +250,18 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
       const label = body.label || '';
       const rawKey = `aw_${randomBytes(32).toString('hex')}`;
       await createApiKey(CLICKHOUSE_URL, rawKey, orgId, label);
+
+      // Import createHash to compute key_hash for id
+      const { createHash } = await import('crypto');
+      const keyHash = createHash('sha256').update(rawKey).digest('hex');
+      const prefix = `aw_...${keyHash.substring(0, 8)}`;
+
       return reply.status(201).send({
         key: rawKey,
-        org_id: orgId,
+        id: keyHash,
         label,
+        prefix,
+        createdAt: new Date().toISOString(),
         message: 'Store this key securely — it cannot be retrieved again.',
       });
     } catch (err: any) {
@@ -285,15 +313,13 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     try {
       const orgId = request.orgId || 'default';
       const keys = await listApiKeys(CLICKHOUSE_URL, orgId);
-      return reply.send({
-        keys: keys.map((k: any) => ({
-          id: k.key_hash,
-          key_prefix: `aw_...${k.key_hash.substring(0, 8)}`,
-          label: k.label,
-          scopes: k.scopes,
-          created_at: k.created_at,
-        })),
-      });
+      // Return array directly (frontend expects ApiKey[])
+      return reply.send(keys.map((k: any) => ({
+        id: k.key_hash,
+        prefix: `aw_...${k.key_hash.substring(0, 8)}`,
+        label: k.label,
+        createdAt: k.created_at,
+      })));
     } catch (err: any) {
       fastify.log.error({ err }, '[PRODUCTNAME] Failed to list API keys');
       return reply.status(500).send({ error: 'Failed to list API keys' });

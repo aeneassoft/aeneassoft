@@ -182,6 +182,16 @@ export async function initClickHouse(url: string): Promise<void> {
     body: CREATE_DAILY_COST_TABLE,
   });
 
+  // Non-breaking column additions (IF NOT EXISTS)
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: `ALTER TABLE users ADD COLUMN IF NOT EXISTS name Nullable(String)`,
+  });
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: `ALTER TABLE alert_history ADD COLUMN IF NOT EXISTS rule_name Nullable(String)`,
+  });
+
   console.log(`[PRODUCTNAME] ClickHouse tables initialized (TTL: ${retentionDays} days)`);
 }
 
@@ -393,24 +403,34 @@ export async function queryCausalLinks(url: string, traceId: string): Promise<an
 export async function queryMetrics(url: string): Promise<any> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
 
-  const query = `
-    SELECT
-      count() as total_traces,
-      countIf(status_code = 'ERROR') / count() as error_rate,
-      sum(accumulated_cost_usd) as total_cost_usd,
-      avg(latency_ms) as avg_latency_ms
-    FROM agent_spans
-    WHERE start_time >= now() - INTERVAL 24 HOUR
-    FORMAT JSON
-  `;
+  const [mainRes, monthRes] = await Promise.all([
+    fetch(`${url}/?database=${db}`, {
+      method: 'POST',
+      body: `
+        SELECT
+          count() as total_traces,
+          countIf(status_code = 'ERROR') / greatest(count(), 1) as error_rate,
+          sum(accumulated_cost_usd) as total_cost_usd,
+          avg(latency_ms) as avg_latency_ms,
+          sum(prompt_tokens + completion_tokens) as total_tokens
+        FROM agent_spans
+        WHERE start_time >= now() - INTERVAL 24 HOUR
+        FORMAT JSON
+      `,
+    }),
+    fetch(`${url}/?database=${db}`, {
+      method: 'POST',
+      body: `SELECT countDistinct(trace_id) as traces_this_month FROM agent_spans WHERE toYYYYMM(start_time) = toYYYYMM(now()) FORMAT JSON`,
+    }),
+  ]);
 
-  const res = await fetch(`${url}/?database=${db}`, {
-    method: 'POST',
-    body: query,
-  });
-
-  const data = (await res.json()) as any;
-  return data.data?.[0] || { total_traces: 0, error_rate: 0, total_cost_usd: 0, avg_latency_ms: 0 };
+  const mainData = (await mainRes.json()) as any;
+  const monthData = (await monthRes.json()) as any;
+  const m = mainData.data?.[0] || {};
+  return {
+    ...m,
+    traces_this_month: Number(monthData.data?.[0]?.traces_this_month) || 0,
+  };
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────
@@ -534,18 +554,20 @@ export interface UserRow {
   password_hash: string;
   org_id: string;
   plan: string;
+  name: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   created_at: string;
 }
 
 export async function createUser(
-  url: string, id: string, email: string, passwordHash: string, orgId: string
+  url: string, id: string, email: string, passwordHash: string, orgId: string, name?: string
 ): Promise<void> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
   const safeEmail = email.replace(/'/g, "\\'");
   const safeHash = passwordHash.replace(/'/g, "\\'");
-  const query = `INSERT INTO users (id, email, password_hash, org_id) VALUES ('${id}', '${safeEmail}', '${safeHash}', '${orgId}')`;
+  const safeName = name ? `'${name.replace(/'/g, "\\'")}'` : 'NULL';
+  const query = `INSERT INTO users (id, email, password_hash, org_id, name) VALUES ('${id}', '${safeEmail}', '${safeHash}', '${orgId}', ${safeName})`;
   await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
 }
 
@@ -652,9 +674,10 @@ export async function deleteAlertRule(url: string, ruleId: string, orgId: string
   await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
 }
 
-export async function saveAlertHistory(url: string, entry: { id: string; rule_id: string; org_id: string; value: number; message: string }): Promise<void> {
+export async function saveAlertHistory(url: string, entry: { id: string; rule_id: string; rule_name?: string; org_id: string; value: number; message: string }): Promise<void> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
-  const query = `INSERT INTO alert_history (id, rule_id, org_id, value, message) VALUES ('${entry.id}', '${entry.rule_id}', '${entry.org_id}', ${entry.value}, '${entry.message.replace(/'/g, "\\'")}')`;
+  const safeRuleName = entry.rule_name ? `'${entry.rule_name.replace(/'/g, "\\'")}'` : 'NULL';
+  const query = `INSERT INTO alert_history (id, rule_id, rule_name, org_id, value, message) VALUES ('${entry.id}', '${entry.rule_id}', ${safeRuleName}, '${entry.org_id}', ${entry.value}, '${entry.message.replace(/'/g, "\\'")}')`;
   await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
 }
 
@@ -665,6 +688,15 @@ export async function getAlertHistory(url: string, orgId: string, limit = 50): P
   const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
   const data = (await res.json()) as any;
   return data.data || [];
+}
+
+export async function getAlertRuleById(url: string, id: string, orgId: string): Promise<AlertRule | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeOrg = sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default';
+  const query = `SELECT * FROM alert_rules FINAL WHERE id = '${id}' AND org_id = '${safeOrg}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
 }
 
 export async function updateAlertIsActive(url: string, id: string, orgId: string, isActive: 0 | 1): Promise<void> {
