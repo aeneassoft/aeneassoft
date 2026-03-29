@@ -58,7 +58,7 @@ export async function registerStripeRoutes(fastify: FastifyInstance): Promise<vo
       metadata: { user_id: user.id, org_id: user.org_id, plan },
     });
 
-    return reply.send({ checkout_url: session.url });
+    return reply.send({ url: session.url });
   });
 
   // POST /stripe/webhook — handle Stripe events
@@ -148,6 +148,6 @@ export async function registerStripeRoutes(fastify: FastifyInstance): Promise<vo
       return_url: 'https://aeneassoft.com/dashboard/billing',
     });
 
-    return reply.send({ portal_url: session.url });
+    return reply.send({ url: session.url });
   });
 }
