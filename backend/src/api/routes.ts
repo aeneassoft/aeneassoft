@@ -19,6 +19,7 @@ import { calculateGraphCost, costBreakdownByAgent } from '../engine/cost-attribu
 import { ATPSpanSchema } from '@productname/atp-schema';
 import { assertHexId } from '../db/clickhouse';
 import { calculateComplianceScore } from '../compliance/score';
+import { sendContactEmail } from '../emails';
 
 const TRACE_ID_RE = /^[0-9a-f]{32}$/;
 function isValidTraceId(id: string): boolean { return TRACE_ID_RE.test(id); }
@@ -240,6 +241,18 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // GET /api/keys — list API keys for current org (hashes only)
+  // POST /api/contact — send contact/sales/investor email
+  fastify.post('/api/contact', async (request, reply) => {
+    const { name, email, company, message, type } = request.body as {
+      name?: string; email?: string; company?: string; message?: string; type?: string;
+    };
+    if (!name || !email || !message) {
+      return reply.status(400).send({ error: 'Name, email, and message required' });
+    }
+    await sendContactEmail(name, email, company || '', message, type || 'contact');
+    return reply.send({ message: 'Message sent. We will respond within 24 hours.' });
+  });
+
   fastify.get('/api/keys', async (request, reply) => {
     try {
       const orgId = request.orgId || 'default';

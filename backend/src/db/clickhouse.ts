@@ -89,6 +89,35 @@ ORDER BY (token)
 TTL expires_at + INTERVAL 1 DAY;
 `;
 
+export const CREATE_ALERT_RULES_TABLE = `
+CREATE TABLE IF NOT EXISTS alert_rules (
+  id             String,
+  org_id         String,
+  name           String,
+  trigger_type   LowCardinality(String),
+  threshold      Float64,
+  time_window_minutes UInt32 DEFAULT 60,
+  action_type    LowCardinality(String),
+  action_target  String,
+  is_active      UInt8 DEFAULT 1,
+  created_at     DateTime DEFAULT now()
+) ENGINE = ReplacingMergeTree()
+ORDER BY (org_id, id);
+`;
+
+export const CREATE_ALERT_HISTORY_TABLE = `
+CREATE TABLE IF NOT EXISTS alert_history (
+  id             String,
+  rule_id        String,
+  org_id         String,
+  triggered_at   DateTime DEFAULT now(),
+  value          Float64,
+  message        String
+) ENGINE = MergeTree()
+ORDER BY (org_id, triggered_at)
+TTL triggered_at + INTERVAL 30 DAY;
+`;
+
 export const CREATE_DAILY_COST_TABLE = `
 CREATE MATERIALIZED VIEW IF NOT EXISTS daily_cost_mv
 ENGINE = SummingMergeTree()
@@ -131,6 +160,16 @@ export async function initClickHouse(url: string): Promise<void> {
   await fetch(`${url}/?database=${db}`, {
     method: 'POST',
     body: CREATE_USERS_TABLE,
+  });
+
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_ALERT_RULES_TABLE,
+  });
+
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_ALERT_HISTORY_TABLE,
   });
 
   await fetch(`${url}/?database=${db}`, {
@@ -567,4 +606,88 @@ export async function markPasswordResetUsed(url: string, tokenHash: string): Pro
   if (!current) return;
   const query = `INSERT INTO password_resets (token, email, expires_at, used) VALUES ('${tokenHash}', '${current.email}', '${current.expires_at}', 1)`;
   await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+// ── Alert Management ─────────────────────────────────────────────────────────
+
+export interface AlertRule {
+  id: string;
+  org_id: string;
+  name: string;
+  trigger_type: string;
+  threshold: number;
+  time_window_minutes: number;
+  action_type: string;
+  action_target: string;
+  is_active: number;
+  created_at: string;
+}
+
+export async function getAlertRules(url: string, orgId?: string): Promise<AlertRule[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const where = orgId ? `WHERE org_id = '${sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default'}'` : '';
+  const query = `SELECT * FROM alert_rules FINAL ${where} ORDER BY created_at DESC FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+export async function getActiveAlertRules(url: string): Promise<AlertRule[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `SELECT * FROM alert_rules FINAL WHERE is_active = 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+export async function createAlertRule(url: string, rule: Omit<AlertRule, 'created_at'>): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `INSERT INTO alert_rules (id, org_id, name, trigger_type, threshold, time_window_minutes, action_type, action_target, is_active) VALUES ('${rule.id}', '${rule.org_id}', '${rule.name.replace(/'/g, "\\'")}', '${rule.trigger_type}', ${rule.threshold}, ${rule.time_window_minutes}, '${rule.action_type}', '${rule.action_target.replace(/'/g, "\\'")}', ${rule.is_active})`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function deleteAlertRule(url: string, ruleId: string, orgId: string): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `ALTER TABLE alert_rules DELETE WHERE id = '${ruleId}' AND org_id = '${orgId}'`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function saveAlertHistory(url: string, entry: { id: string; rule_id: string; org_id: string; value: number; message: string }): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `INSERT INTO alert_history (id, rule_id, org_id, value, message) VALUES ('${entry.id}', '${entry.rule_id}', '${entry.org_id}', ${entry.value}, '${entry.message.replace(/'/g, "\\'")}')`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function getAlertHistory(url: string, orgId: string, limit = 50): Promise<any[]> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeOrg = sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default';
+  const query = `SELECT * FROM alert_history WHERE org_id = '${safeOrg}' ORDER BY triggered_at DESC LIMIT ${Math.min(limit, 200)} FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data || [];
+}
+
+export async function checkAlertCondition(url: string, rule: AlertRule): Promise<number> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const orgFilter = rule.org_id ? `AND org_id = '${rule.org_id}'` : '';
+  const timeFilter = `AND start_time >= now() - INTERVAL ${rule.time_window_minutes} MINUTE`;
+
+  let query: string;
+  switch (rule.trigger_type) {
+    case 'cost_per_hour':
+      query = `SELECT sum(accumulated_cost_usd) as val FROM agent_spans WHERE 1=1 ${orgFilter} ${timeFilter} FORMAT JSON`;
+      break;
+    case 'error_rate':
+      query = `SELECT countIf(status_code = 'ERROR') * 100.0 / count() as val FROM agent_spans WHERE 1=1 ${orgFilter} ${timeFilter} FORMAT JSON`;
+      break;
+    case 'cost_per_agent':
+      query = `SELECT max(agent_cost) as val FROM (SELECT agent_id, sum(accumulated_cost_usd) as agent_cost FROM agent_spans WHERE 1=1 ${orgFilter} ${timeFilter} GROUP BY agent_id) FORMAT JSON`;
+      break;
+    default:
+      return 0;
+  }
+
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return Number(data.data?.[0]?.val) || 0;
 }

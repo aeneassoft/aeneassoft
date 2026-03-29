@@ -112,6 +112,8 @@ const PUBLIC_PATHS = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/logout',
+  '/stripe/webhook',
+  '/api/contact',
 ];
 
 export async function registerAuthMiddleware(fastify: FastifyInstance): Promise<void> {
@@ -121,7 +123,7 @@ export async function registerAuthMiddleware(fastify: FastifyInstance): Promise<
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
     // Exempt non-API, non-auth routes
     const path = request.url.split('?')[0];
-    if (!path.startsWith('/api/') && !path.startsWith('/auth/')) return;
+    if (!path.startsWith('/api/') && !path.startsWith('/auth/') && !path.startsWith('/stripe/')) return;
 
     // Exempt public paths
     if (PUBLIC_PATHS.some(p => path === p || path.startsWith(p + '/'))) return;

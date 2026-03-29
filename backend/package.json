@@ -18,6 +18,8 @@
     "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4",
     "pdfkit": "^0.14.0",
+    "resend": "^6.9.4",
+    "stripe": "^21.0.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

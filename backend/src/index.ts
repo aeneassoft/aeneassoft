@@ -4,7 +4,10 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { registerRoutes } from './api/routes';
 import { registerAuthRoutes } from './api/auth-routes';
+import { registerStripeRoutes } from './api/stripe-routes';
+import { registerAlertRoutes } from './api/alert-routes';
 import { registerAuthMiddleware } from './middleware/auth';
+import { startAlertWorker, stopAlertWorker } from './alert-worker';
 import { initClickHouse } from './db/clickhouse';
 import { startKafkaConsumer, stopKafkaConsumer } from './kafka-consumer';
 
@@ -60,12 +63,22 @@ async function main() {
   // Register auth routes (register, login, password reset, me)
   await registerAuthRoutes(fastify);
 
-  // Register API routes (traces, metrics, cost, compliance, keys)
+  // Register Stripe routes (checkout, webhook, portal)
+  await registerStripeRoutes(fastify);
+
+  // Register alert routes (CRUD + history)
+  await registerAlertRoutes(fastify);
+
+  // Register API routes (traces, metrics, cost, compliance, keys, contact)
   await registerRoutes(fastify);
+
+  // Start alert worker (checks conditions every 60s)
+  startAlertWorker();
 
   // Graceful shutdown
   const shutdown = async () => {
     fastify.log.info('[PRODUCTNAME] Shutting down...');
+    stopAlertWorker();
     await stopKafkaConsumer();
     await fastify.close();
     process.exit(0);
