@@ -62,6 +62,33 @@ CREATE TABLE IF NOT EXISTS api_keys (
 ORDER BY (key_hash);
 `;
 
+export const CREATE_USERS_TABLE = `
+CREATE TABLE IF NOT EXISTS users (
+  id             String,
+  email          String,
+  password_hash  String,
+  org_id         String,
+  plan           LowCardinality(String) DEFAULT 'free',
+  stripe_customer_id    Nullable(String),
+  stripe_subscription_id Nullable(String),
+  created_at     DateTime DEFAULT now(),
+  updated_at     DateTime DEFAULT now()
+) ENGINE = ReplacingMergeTree(updated_at)
+ORDER BY (email);
+`;
+
+export const CREATE_PASSWORD_RESETS_TABLE = `
+CREATE TABLE IF NOT EXISTS password_resets (
+  token       String,
+  email       String,
+  expires_at  DateTime,
+  used        UInt8 DEFAULT 0,
+  created_at  DateTime DEFAULT now()
+) ENGINE = ReplacingMergeTree(created_at)
+ORDER BY (token)
+TTL expires_at + INTERVAL 1 DAY;
+`;
+
 export const CREATE_DAILY_COST_TABLE = `
 CREATE MATERIALIZED VIEW IF NOT EXISTS daily_cost_mv
 ENGINE = SummingMergeTree()
@@ -99,6 +126,16 @@ export async function initClickHouse(url: string): Promise<void> {
   await fetch(`${url}/?database=${db}`, {
     method: 'POST',
     body: CREATE_API_KEYS_TABLE,
+  });
+
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_USERS_TABLE,
+  });
+
+  await fetch(`${url}/?database=${db}`, {
+    method: 'POST',
+    body: CREATE_PASSWORD_RESETS_TABLE,
   });
 
   await fetch(`${url}/?database=${db}`, {
@@ -445,4 +482,89 @@ export async function queryCostByModel(url: string, from?: string, to?: string):
   const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
   const data = (await res.json()) as any;
   return data.data || [];
+}
+
+// ── User Management ──────────────────────────────────────────────────────────
+
+const VALID_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_UUID = /^[0-9a-f-]{36}$/;
+
+export interface UserRow {
+  id: string;
+  email: string;
+  password_hash: string;
+  org_id: string;
+  plan: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  created_at: string;
+}
+
+export async function createUser(
+  url: string, id: string, email: string, passwordHash: string, orgId: string
+): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeEmail = email.replace(/'/g, "\\'");
+  const safeHash = passwordHash.replace(/'/g, "\\'");
+  const query = `INSERT INTO users (id, email, password_hash, org_id) VALUES ('${id}', '${safeEmail}', '${safeHash}', '${orgId}')`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function findUserByEmail(url: string, email: string): Promise<UserRow | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  if (!VALID_EMAIL.test(email)) return null;
+  const safeEmail = email.replace(/'/g, "\\'");
+  const query = `SELECT * FROM users FINAL WHERE email = '${safeEmail}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
+}
+
+export async function findUserById(url: string, id: string): Promise<UserRow | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  if (!VALID_UUID.test(id)) return null;
+  const query = `SELECT * FROM users FINAL WHERE id = '${id}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
+}
+
+export async function updateUser(
+  url: string, email: string, fields: Partial<Pick<UserRow, 'password_hash' | 'plan' | 'stripe_customer_id' | 'stripe_subscription_id'>>
+): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const current = await findUserByEmail(url, email);
+  if (!current) return;
+  const updated = { ...current, ...fields };
+  const ts = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const safeEmail = updated.email.replace(/'/g, "\\'");
+  const safeHash = updated.password_hash.replace(/'/g, "\\'");
+  const safePlan = updated.plan.replace(/'/g, "\\'");
+  const query = `INSERT INTO users (id, email, password_hash, org_id, plan, stripe_customer_id, stripe_subscription_id, updated_at) VALUES ('${updated.id}', '${safeEmail}', '${safeHash}', '${updated.org_id}', '${safePlan}', ${updated.stripe_customer_id ? `'${updated.stripe_customer_id}'` : 'NULL'}, ${updated.stripe_subscription_id ? `'${updated.stripe_subscription_id}'` : 'NULL'}, '${ts}')`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+// ── Password Resets ──────────────────────────────────────────────────────────
+
+export async function createPasswordReset(url: string, tokenHash: string, email: string, expiresAt: string): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeEmail = email.replace(/'/g, "\\'");
+  const query = `INSERT INTO password_resets (token, email, expires_at) VALUES ('${tokenHash}', '${safeEmail}', '${expiresAt}')`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function findPasswordReset(url: string, tokenHash: string): Promise<{ token: string; email: string; expires_at: string } | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `SELECT * FROM password_resets FINAL WHERE token = '${tokenHash}' AND used = 0 AND expires_at > now() LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
+}
+
+export async function markPasswordResetUsed(url: string, tokenHash: string): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const current = await findPasswordReset(url, tokenHash);
+  if (!current) return;
+  const query = `INSERT INTO password_resets (token, email, expires_at, used) VALUES ('${tokenHash}', '${current.email}', '${current.expires_at}', 1)`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
 }

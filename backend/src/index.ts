@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { registerRoutes } from './api/routes';
+import { registerAuthRoutes } from './api/auth-routes';
 import { registerAuthMiddleware } from './middleware/auth';
 import { initClickHouse } from './db/clickhouse';
 import { startKafkaConsumer, stopKafkaConsumer } from './kafka-consumer';
@@ -32,7 +33,8 @@ async function main() {
       if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
       cb(new Error(`CORS: origin ${origin} not allowed`), false);
     },
-    methods: ['GET', 'POST'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
   });
 
   // Initialize ClickHouse tables
@@ -52,10 +54,13 @@ async function main() {
     fastify.log.warn({ err }, '[PRODUCTNAME] Kafka consumer failed to start, proxy ingestion unavailable');
   }
 
-  // Auth middleware — protects all /api/* routes, /health exempt
+  // Auth middleware — protects all /api/* and /auth/me routes
   await registerAuthMiddleware(fastify);
 
-  // Register API routes
+  // Register auth routes (register, login, password reset, me)
+  await registerAuthRoutes(fastify);
+
+  // Register API routes (traces, metrics, cost, compliance, keys)
   await registerRoutes(fastify);
 
   // Graceful shutdown

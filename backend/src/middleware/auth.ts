@@ -1,75 +1,150 @@
-// [PRODUCTNAME] Auth Middleware — API Key validation
-// Reads X-API-Key header, validates against API_KEY env var (single-tenant)
-// or ClickHouse api_keys table (multi-tenant). Protects all /api/* routes.
+// [PRODUCTNAME] Auth Middleware — Dual authentication: JWT + API Key
+// JWT: for browser/dashboard sessions (Authorization: Bearer <token> or cookie)
+// API Key: for SDK/programmatic access (X-API-Key header)
+// Both set request.orgId. JWT also sets request.userId.
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createHash, timingSafeEqual } from 'crypto';
+import jwt from 'jsonwebtoken';
 import { lookupApiKey } from '../db/clickhouse';
 
 const API_KEY_HEADER = 'x-api-key';
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || 'dev-secret-change-in-production';
+}
 
 function sha256buf(value: string): Buffer {
   return createHash('sha256').update(value).digest();
 }
 
-interface AuthResult {
-  authorized: boolean;
-  org_id?: string;
+// ── JWT Resolution ───────────────────────────────────────────────────────────
+
+interface JwtPayload {
+  userId: string;
+  orgId: string;
+  email: string;
 }
 
-async function resolveAuth(request: FastifyRequest): Promise<AuthResult> {
+interface AuthResult {
+  authorized: boolean;
+  userId?: string;
+  orgId?: string;
+}
+
+function resolveJwt(request: FastifyRequest): AuthResult {
+  // Check Authorization: Bearer <token> header
+  let token: string | undefined;
+  const authHeader = request.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+
+  // Fallback: check cookie
+  if (!token) {
+    const cookie = request.headers['cookie'];
+    if (cookie) {
+      const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+      if (match) token = match[1];
+    }
+  }
+
+  if (!token) return { authorized: false };
+
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as JwtPayload;
+    if (payload.userId && payload.orgId) {
+      return { authorized: true, userId: payload.userId, orgId: payload.orgId };
+    }
+    return { authorized: false };
+  } catch {
+    return { authorized: false };
+  }
+}
+
+// ── API Key Resolution ───────────────────────────────────────────────────────
+
+async function resolveApiKey(request: FastifyRequest): Promise<AuthResult> {
   const configuredKey = process.env.API_KEY;
   const providedKey = request.headers[API_KEY_HEADER] as string | undefined;
 
-  // Dev mode: if no API_KEY configured, allow all requests
-  if (!configuredKey && !providedKey) return { authorized: true, org_id: 'default' };
+  // Dev mode: if no API_KEY configured and no key provided, allow all
+  if (!configuredKey && !providedKey) return { authorized: true, orgId: 'default' };
 
   if (!providedKey) return { authorized: false };
 
-  // 1. Check against single-tenant API_KEY env var (backwards compatible)
+  // 1. Single-tenant API_KEY env var (backwards compatible)
   if (configuredKey) {
     const match = timingSafeEqual(sha256buf(providedKey), sha256buf(configuredKey));
-    if (match) return { authorized: true, org_id: 'default' };
+    if (match) return { authorized: true, orgId: 'default' };
   }
 
-  // 2. Check against multi-tenant api_keys table in ClickHouse
+  // 2. Multi-tenant api_keys table in ClickHouse
   try {
     const result = await lookupApiKey(CLICKHOUSE_URL, providedKey);
-    if (result) return { authorized: true, org_id: result.org_id };
+    if (result) return { authorized: true, orgId: result.org_id };
   } catch {
     // ClickHouse unavailable — fall through
   }
 
-  // 3. Dev mode: if no single-tenant key configured, accept any key
-  if (!configuredKey) return { authorized: true, org_id: 'default' };
+  // 3. Dev mode fallback
+  if (!configuredKey) return { authorized: true, orgId: 'default' };
 
   return { authorized: false };
 }
 
-// Attach org_id to request for downstream route handlers
+// ── Fastify Request Extension ────────────────────────────────────────────────
+
 declare module 'fastify' {
   interface FastifyRequest {
     orgId?: string;
+    userId?: string;
   }
 }
 
+// ── Middleware Registration ───────────────────────────────────────────────────
+
+// Paths that never require auth
+const PUBLIC_PATHS = [
+  '/health',
+  '/auth/register',
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/logout',
+];
+
 export async function registerAuthMiddleware(fastify: FastifyInstance): Promise<void> {
-  // Decorate request with orgId
   fastify.decorateRequest('orgId', '');
+  fastify.decorateRequest('userId', '');
 
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Exempt non-api routes and health
-    if (!request.url.startsWith('/api/')) return;
+    // Exempt non-API, non-auth routes
+    const path = request.url.split('?')[0];
+    if (!path.startsWith('/api/') && !path.startsWith('/auth/')) return;
 
-    const auth = await resolveAuth(request);
-    if (!auth.authorized) {
-      return reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Missing or invalid API key. Provide X-API-Key header.',
-      });
+    // Exempt public paths
+    if (PUBLIC_PATHS.some(p => path === p || path.startsWith(p + '/'))) return;
+
+    // 1. Try JWT first (browser sessions)
+    const jwtResult = resolveJwt(request);
+    if (jwtResult.authorized) {
+      request.userId = jwtResult.userId;
+      request.orgId = jwtResult.orgId;
+      return;
     }
 
-    request.orgId = auth.org_id || 'default';
+    // 2. Fallback to API key (SDK/programmatic)
+    const apiKeyResult = await resolveApiKey(request);
+    if (apiKeyResult.authorized) {
+      request.orgId = apiKeyResult.orgId;
+      return;
+    }
+
+    // 3. Reject
+    return reply.status(401).send({
+      error: 'Unauthorized',
+      message: 'Provide a valid JWT token (Authorization: Bearer <token>) or API key (X-API-Key header).',
+    });
   });
 }

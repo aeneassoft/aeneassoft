@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=backend"],
+      "port": 3001
+    },
+    {
+      "name": "proxy",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=proxy"],
+      "port": 8080
+    }
+  ]
+}
