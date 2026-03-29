@@ -1,6 +1,7 @@
 // [PRODUCTNAME] Alert Worker — checks alert conditions every 60 seconds
 import { randomUUID } from 'crypto';
 import { getActiveAlertRules, checkAlertCondition, saveAlertHistory } from './db/clickhouse';
+import { sendAlertEmail } from './emails';
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 
@@ -39,9 +40,8 @@ async function triggerAlert(rule: any, value: number): Promise<void> {
   }
 
   if (rule.action_type === 'email') {
-    // Will use Resend in Block 5. For now, log.
-    console.log(`[PRODUCTNAME] ALERT EMAIL → ${rule.action_target}: ${message}`);
-    // TODO: sendAlertEmail(rule.action_target, rule.name, value, rule.threshold)
+    sendAlertEmail(rule.action_target, rule.name, value, rule.threshold).catch(err =>
+      console.error(`[PRODUCTNAME] Failed to send alert email to ${rule.action_target}:`, err));
   }
 
   console.log(`[PRODUCTNAME] Alert triggered: ${message}`);

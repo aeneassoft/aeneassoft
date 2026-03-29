@@ -13,6 +13,7 @@ import {
   markPasswordResetUsed,
   updateUser,
 } from '../db/clickhouse';
+import { sendWelcomeEmail, sendResetPasswordEmail } from '../emails';
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 function getJwtSecret(): string {
@@ -70,6 +71,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     const token = signToken(userId, orgId, email);
     setTokenCookie(reply, token);
 
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(email, rawKey).catch(err =>
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to send welcome email'));
+
     return reply.status(201).send({
       user: { id: userId, email, org_id: orgId, plan: 'free' },
       token,
@@ -123,10 +128,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
       await createPasswordReset(CLICKHOUSE_URL, tokenHash, email, expiresAt);
 
-      // TODO: Send email via Resend (Block 5)
-      // For now, log the reset URL
-      fastify.log.info(`[PRODUCTNAME] Password reset token for ${email}: ${rawToken}`);
-      fastify.log.info(`[PRODUCTNAME] Reset URL: https://aeneassoft.com/reset-password?token=${rawToken}`);
+      // Send reset email (non-blocking)
+      sendResetPasswordEmail(email, rawToken).catch(err =>
+        fastify.log.error({ err }, '[PRODUCTNAME] Failed to send reset email'));
+      fastify.log.info(`[PRODUCTNAME] Password reset requested for ${email}`);
     }
 
     return reply.send({ message: 'If that email exists, a reset link has been sent.' });

@@ -2,6 +2,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Stripe from 'stripe';
 import { findUserById, updateUser, findUserByEmail } from '../db/clickhouse';
+import { sendPaymentFailedEmail } from '../emails';
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 
@@ -109,7 +110,11 @@ export async function registerStripeRoutes(fastify: FastifyInstance): Promise<vo
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         fastify.log.warn(`[PRODUCTNAME] Payment failed for customer ${invoice.customer}`);
-        // TODO: Send email via Resend (Block 5)
+        const customerEmail = invoice.customer_email;
+        if (customerEmail) {
+          sendPaymentFailedEmail(customerEmail).catch(err =>
+            fastify.log.error({ err }, '[PRODUCTNAME] Failed to send payment-failed email'));
+        }
         break;
       }
 
