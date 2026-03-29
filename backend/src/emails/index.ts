@@ -106,11 +106,12 @@ export async function sendContactEmail(name: string, email: string, company: str
                   type === 'career' ? `Career Interest from ${name}` :
                   `Contact from ${name} (${company})`;
 
-  if (!resend) { console.log(`[PRODUCTNAME] Email (no Resend): ${subject} → sales@aeneassoft.com`); return; }
+  const SALES_EMAIL = process.env.SALES_EMAIL || 'leonhard.hampe@aeneassoft.com';
+  if (!resend) { console.log(`[PRODUCTNAME] Email (no Resend): ${subject} → ${SALES_EMAIL}`); return; }
 
   await resend.emails.send({
     from: FROM,
-    to: 'sales@aeneassoft.com',
+    to: SALES_EMAIL,
     replyTo: email,
     subject,
     html: `
