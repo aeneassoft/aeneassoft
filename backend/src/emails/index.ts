@@ -75,6 +75,26 @@ export async function sendPaymentFailedEmail(to: string): Promise<void> {
   });
 }
 
+// ── Subscription Cancelled Email ─────────────────────────────────────────────
+
+export async function sendSubscriptionCancelledEmail(to: string): Promise<void> {
+  const resend = getResend();
+  if (!resend) { console.log(`[PRODUCTNAME] Email (no Resend): SubscriptionCancelled → ${to}`); return; }
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: 'Dein AeneasSoft Pro Abo wurde beendet',
+    html: `
+      <h2>Dein Abo wurde beendet</h2>
+      <p>Dein AeneasSoft Pro Abo wurde beendet. Dein Account wurde auf den <strong>Free Plan</strong> zurückgesetzt.</p>
+      <p>Du kannst jederzeit wieder upgraden und alle Pro-Features nutzen:</p>
+      <p><a href="https://aeneassoft.com/pricing" style="background:#F0A500;color:#0A1628;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Wieder upgraden</a></p>
+      <p style="color:#666;font-size:12px;">Fragen? Schreib uns an support@aeneassoft.com</p>
+    `,
+  });
+}
+
 // ── Alert Triggered Email ────────────────────────────────────────────────────
 
 export async function sendAlertEmail(to: string, alertName: string, value: number, threshold: number): Promise<void> {

@@ -1,8 +1,8 @@
 // [PRODUCTNAME] Stripe Routes — Checkout, Webhooks, Billing Portal
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Stripe from 'stripe';
-import { findUserById, updateUser, findUserByEmail } from '../db/clickhouse';
-import { sendPaymentFailedEmail } from '../emails';
+import { findUserById, updateUser, findUserByEmail, findUserByStripeCustomerId } from '../db/clickhouse';
+import { sendPaymentFailedEmail, sendSubscriptionCancelledEmail } from '../emails';
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 
@@ -101,9 +101,15 @@ export async function registerStripeRoutes(fastify: FastifyInstance): Promise<vo
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
-        // Look up user by stripe_customer_id — need to find by email
-        // For now, log the event
-        fastify.log.info(`[PRODUCTNAME] Subscription deleted for customer ${customerId}`);
+        const user = await findUserByStripeCustomerId(CLICKHOUSE_URL, customerId);
+        if (user) {
+          await updateUser(CLICKHOUSE_URL, user.email, { plan: 'free', stripe_subscription_id: null });
+          sendSubscriptionCancelledEmail(user.email).catch(err =>
+            fastify.log.error({ err }, '[PRODUCTNAME] Failed to send subscription cancelled email'));
+          fastify.log.info(`[PRODUCTNAME] Subscription deleted for ${user.email} — downgraded to free`);
+        } else {
+          fastify.log.warn(`[PRODUCTNAME] Subscription deleted for unknown customer ${customerId}`);
+        }
         break;
       }
 

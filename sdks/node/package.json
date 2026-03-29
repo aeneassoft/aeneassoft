@@ -1,5 +1,5 @@
 {
-  "name": "@productname/sdk-node",
+  "name": "@aeneassoft/sdk-node",
   "version": "0.1.0",
   "description": "[PRODUCTNAME] Node.js SDK — auto-instrumentation for OpenAI and Anthropic",
   "main": "dist/index.js",

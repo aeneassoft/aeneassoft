@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { registerBillingRoutes } from './billing-routes';
 import { registerAlertRoutes } from './alert-routes';
 import { registerRoutes } from './routes';
+import { registerStripeRoutes } from './stripe-routes';
 import { registerAuthMiddleware } from '../middleware/auth';
 
 const JWT_SECRET = 'test-jwt-secret';
@@ -22,6 +23,8 @@ const MOCK_USER = {
 vi.mock('../db/clickhouse', () => ({
   findUserById: vi.fn(),
   findUserByEmail: vi.fn(),
+  findUserByStripeCustomerId: vi.fn(),
+  updateUser: vi.fn(),
   lookupApiKey: vi.fn(),
   queryBillingUsage: vi.fn(),
   getAlertRules: vi.fn(),
@@ -47,7 +50,11 @@ vi.mock('../db/clickhouse', () => ({
 }));
 
 vi.mock('stripe', () => ({
-  default: vi.fn().mockImplementation(() => ({})),
+  default: vi.fn().mockImplementation(() => ({
+    webhooks: {
+      constructEvent: vi.fn().mockImplementation((body: string) => JSON.parse(body)),
+    },
+  })),
 }));
 
 import * as db from '../db/clickhouse';
@@ -173,6 +180,51 @@ describe('DELETE /api/keys/:id', () => {
       url: `/api/keys/${'a'.repeat(64)}`,
     });
     expect(res.statusCode).toBe(401);
+    await app.close();
+  });
+});
+
+describe('POST /stripe/webhook — subscription.deleted', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.STRIPE_SECRET_KEY = 'sk_test_xxx';
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+  });
+
+  async function buildStripeApp() {
+    process.env.JWT_SECRET = JWT_SECRET;
+    process.env.API_KEY = 'test-api-key';
+    const app = Fastify();
+    await registerAuthMiddleware(app);
+    await registerStripeRoutes(app);
+    await app.ready();
+    return app;
+  }
+
+  it('subscription.deleted → user downgraded to free', async () => {
+    (db.findUserByStripeCustomerId as any).mockResolvedValue({ ...MOCK_USER, plan: 'pro' });
+    (db.updateUser as any).mockResolvedValue(undefined);
+
+    const event = {
+      type: 'customer.subscription.deleted',
+      data: { object: { customer: 'cus_test' } },
+    };
+
+    const app = await buildStripeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/stripe/webhook',
+      headers: { 'stripe-signature': 'test-sig', 'content-type': 'application/json' },
+      payload: JSON.stringify(event),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(db.findUserByStripeCustomerId).toHaveBeenCalledWith(expect.any(String), 'cus_test');
+    expect(db.updateUser).toHaveBeenCalledWith(
+      expect.any(String),
+      MOCK_USER.email,
+      { plan: 'free', stripe_subscription_id: null }
+    );
     await app.close();
   });
 });

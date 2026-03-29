@@ -590,6 +590,18 @@ export async function findUserById(url: string, id: string): Promise<UserRow | n
   return data.data?.[0] || null;
 }
 
+const VALID_STRIPE_CUSTOMER = /^cus_[a-zA-Z0-9]{1,50}$/;
+
+export async function findUserByStripeCustomerId(url: string, customerId: string): Promise<UserRow | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  if (!VALID_STRIPE_CUSTOMER.test(customerId)) return null;
+  const safeId = customerId.replace(/'/g, "\\'");
+  const query = `SELECT * FROM users FINAL WHERE stripe_customer_id = '${safeId}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
+}
+
 export async function updateUser(
   url: string, email: string, fields: Partial<Pick<UserRow, 'password_hash' | 'plan' | 'stripe_customer_id' | 'stripe_subscription_id'>>
 ): Promise<void> {

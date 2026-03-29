@@ -260,8 +260,8 @@ function patchModule(mod: typeof http | typeof https): void {
     return req;
   }
 
-  // @ts-expect-error — replacing bound function with wrapper
-  mod.request = patchedRequest;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (mod as any).request = patchedRequest;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
