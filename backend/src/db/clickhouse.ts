@@ -667,6 +667,51 @@ export async function getAlertHistory(url: string, orgId: string, limit = 50): P
   return data.data || [];
 }
 
+export async function updateAlertIsActive(url: string, id: string, orgId: string, isActive: 0 | 1): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `ALTER TABLE alert_rules UPDATE is_active = ${isActive} WHERE id = '${id}' AND org_id = '${orgId}'`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function queryBillingUsage(url: string, orgId: string): Promise<{ traces_this_month: number; cost_this_month_usd: number }> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeOrg = sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default';
+
+  const [tracesRes, costRes] = await Promise.all([
+    fetch(`${url}/?database=${db}`, {
+      method: 'POST',
+      body: `SELECT count() as total FROM agent_spans WHERE org_id = '${safeOrg}' AND toYYYYMM(start_time) = toYYYYMM(now()) FORMAT JSON`,
+    }),
+    fetch(`${url}/?database=${db}`, {
+      method: 'POST',
+      body: `SELECT sum(total_cost_usd) as cost FROM daily_cost_mv WHERE org_id = '${safeOrg}' AND toYYYYMM(day) = toYYYYMM(now()) FORMAT JSON`,
+    }),
+  ]);
+
+  const tracesData = (await tracesRes.json()) as any;
+  const costData = (await costRes.json()) as any;
+
+  return {
+    traces_this_month: Number(tracesData.data?.[0]?.total) || 0,
+    cost_this_month_usd: Number(costData.data?.[0]?.cost) || 0,
+  };
+}
+
+export async function deleteApiKey(url: string, keyHash: string, orgId: string): Promise<void> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const query = `ALTER TABLE api_keys DELETE WHERE key_hash = '${keyHash}' AND org_id = '${orgId}'`;
+  await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+}
+
+export async function countApiKeys(url: string, orgId: string): Promise<number> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  const safeOrg = sanitizeFilter(orgId, VALID_IDENTIFIER) || 'default';
+  const query = `SELECT count() as total FROM api_keys WHERE org_id = '${safeOrg}' FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return Number(data.data?.[0]?.total) || 0;
+}
+
 export async function checkAlertCondition(url: string, rule: AlertRule): Promise<number> {
   const db = process.env.CLICKHOUSE_DB || 'productname';
   const orgFilter = rule.org_id ? `AND org_id = '${rule.org_id}'` : '';

@@ -9,6 +9,8 @@ import {
   queryCausalLinks,
   createApiKey,
   listApiKeys,
+  deleteApiKey,
+  countApiKeys,
   queryCostDaily,
   queryCostByAgent,
   queryCostByModel,
@@ -240,6 +242,32 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
+  // DELETE /api/keys/:id — delete API key (id = key_hash)
+  fastify.delete<{ Params: { id: string } }>('/api/keys/:id', async (request, reply) => {
+    try {
+      const orgId = request.orgId || 'default';
+      const { id } = request.params;
+
+      // Validate key_hash format (SHA-256 hex = 64 chars)
+      const KEY_HASH_RE = /^[0-9a-f]{64}$/;
+      if (!KEY_HASH_RE.test(id)) {
+        return reply.status(400).send({ error: 'Invalid key id format' });
+      }
+
+      // Prevent deleting the last key
+      const count = await countApiKeys(CLICKHOUSE_URL, orgId);
+      if (count <= 1) {
+        return reply.status(400).send({ error: 'Cannot delete the last API key. Create a new key first.' });
+      }
+
+      await deleteApiKey(CLICKHOUSE_URL, id, orgId);
+      return reply.send({ success: true, id });
+    } catch (err: any) {
+      fastify.log.error({ err }, '[PRODUCTNAME] Failed to delete API key');
+      return reply.status(500).send({ error: 'Failed to delete API key' });
+    }
+  });
+
   // GET /api/keys — list API keys for current org (hashes only)
   // POST /api/contact — send contact/sales/investor email
   fastify.post('/api/contact', async (request, reply) => {
@@ -259,6 +287,7 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
       const keys = await listApiKeys(CLICKHOUSE_URL, orgId);
       return reply.send({
         keys: keys.map((k: any) => ({
+          id: k.key_hash,
           key_prefix: `aw_...${k.key_hash.substring(0, 8)}`,
           label: k.label,
           scopes: k.scopes,

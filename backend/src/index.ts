@@ -6,6 +6,7 @@ import { registerRoutes } from './api/routes';
 import { registerAuthRoutes } from './api/auth-routes';
 import { registerStripeRoutes } from './api/stripe-routes';
 import { registerAlertRoutes } from './api/alert-routes';
+import { registerBillingRoutes } from './api/billing-routes';
 import { registerAuthMiddleware } from './middleware/auth';
 import { startAlertWorker, stopAlertWorker } from './alert-worker';
 import { initClickHouse } from './db/clickhouse';
@@ -68,6 +69,9 @@ async function main() {
 
   // Register alert routes (CRUD + history)
   await registerAlertRoutes(fastify);
+
+  // Register billing route (plan, usage, period)
+  await registerBillingRoutes(fastify);
 
   // Register API routes (traces, metrics, cost, compliance, keys, contact)
   await registerRoutes(fastify);

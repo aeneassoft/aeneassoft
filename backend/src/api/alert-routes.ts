@@ -6,6 +6,7 @@ import {
   createAlertRule,
   deleteAlertRule,
   getAlertHistory,
+  updateAlertIsActive,
 } from '../db/clickhouse';
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
@@ -67,6 +68,24 @@ export async function registerAlertRoutes(fastify: FastifyInstance): Promise<voi
     const orgId = request.orgId || 'default';
     await deleteAlertRule(CLICKHOUSE_URL, request.params.id, orgId);
     return reply.send({ deleted: true });
+  });
+
+  // PATCH /api/alerts/:id — toggle is_active
+  fastify.patch<{ Params: { id: string } }>('/api/alerts/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const orgId = request.orgId || 'default';
+    const { id } = request.params;
+    const UUID_RE = /^[0-9a-f-]{36}$/;
+    if (!UUID_RE.test(id)) {
+      return reply.status(400).send({ error: 'Invalid alert id format' });
+    }
+
+    const body = request.body as { is_active?: unknown };
+    if (body.is_active !== 0 && body.is_active !== 1) {
+      return reply.status(400).send({ error: 'is_active must be 0 or 1' });
+    }
+
+    await updateAlertIsActive(CLICKHOUSE_URL, id, orgId, body.is_active as 0 | 1);
+    return reply.send({ success: true, id, is_active: body.is_active });
   });
 
   // GET /api/alerts/history — alert history
