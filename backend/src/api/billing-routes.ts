@@ -36,7 +36,7 @@ export async function registerBillingRoutes(fastify: FastifyInstance): Promise<v
       const stripe = getStripe();
       if (stripe) {
         try {
-          const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+          const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id) as any;
           current_period_end = new Date(sub.current_period_end * 1000).toISOString();
         } catch (err) {
           fastify.log.warn({ err }, '[PRODUCTNAME] Failed to fetch Stripe subscription');
