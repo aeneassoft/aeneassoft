@@ -14,6 +14,8 @@ import {
   queryCostDaily,
   queryCostByAgent,
   queryCostByModel,
+  queryBillingUsage,
+  findUserByOrgId,
   TraceQueryParams,
 } from '../db/clickhouse';
 import { CausalGraphEngine } from '../engine/causal-graph';
@@ -25,6 +27,12 @@ import { sendContactEmail } from '../emails';
 
 const TRACE_ID_RE = /^[0-9a-f]{32}$/;
 function isValidTraceId(id: string): boolean { return TRACE_ID_RE.test(id); }
+
+const PLAN_LIMITS: Record<string, number | null> = {
+  free: 10_000,
+  pro: 100_000,
+  enterprise: null, // unlimited
+};
 
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://localhost:8123';
 
@@ -183,6 +191,26 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/ingest — direct span ingestion
   fastify.post('/api/ingest', async (request, reply) => {
     try {
+      // ── Plan limit check ────────────────────────────────────────────────────
+      const orgId = request.orgId;
+      if (orgId && orgId !== 'default') {
+        const user = await findUserByOrgId(CLICKHOUSE_URL, orgId);
+        const plan = user?.plan || 'free';
+        const limit = plan in PLAN_LIMITS ? PLAN_LIMITS[plan] : PLAN_LIMITS.free;
+        if (limit !== null) {
+          const usage = await queryBillingUsage(CLICKHOUSE_URL, orgId);
+          if (usage.traces_this_month >= limit) {
+            return reply.status(429).send({
+              error: 'Monthly trace limit reached',
+              plan,
+              limit,
+              usage: usage.traces_this_month,
+              upgrade_url: 'https://aeneassoft.com/pricing',
+            });
+          }
+        }
+      }
+
       const parsed = ATPSpanSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.status(400).send({

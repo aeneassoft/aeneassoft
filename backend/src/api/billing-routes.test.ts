@@ -24,6 +24,7 @@ vi.mock('../db/clickhouse', () => ({
   findUserById: vi.fn(),
   findUserByEmail: vi.fn(),
   findUserByStripeCustomerId: vi.fn(),
+  findUserByOrgId: vi.fn(),
   updateUser: vi.fn(),
   lookupApiKey: vi.fn(),
   queryBillingUsage: vi.fn(),
@@ -225,6 +226,95 @@ describe('POST /stripe/webhook — subscription.deleted', () => {
       MOCK_USER.email,
       { plan: 'free', stripe_subscription_id: null }
     );
+    await app.close();
+  });
+});
+
+describe('POST /api/ingest — plan limit enforcement', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const VALID_SPAN = {
+    trace_id: 'a'.repeat(32),
+    span_id: 'b'.repeat(16),
+    name: 'test-span',
+    kind: 'INTERNAL',
+    start_time_unix_nano: 1000000,
+    end_time_unix_nano: 2000000,
+    status: { code: 'OK' },
+    agent_id: 'agent-1',
+    agent_name: 'TestAgent',
+    agent_role: 'tester',
+  };
+
+  it('free user under limit → 202', async () => {
+    (db.findUserByOrgId as any).mockResolvedValue({ ...MOCK_USER, plan: 'free' });
+    (db.queryBillingUsage as any).mockResolvedValue({ traces_this_month: 5_000, cost_this_month_usd: 0 });
+    (db.insertSpan as any).mockResolvedValue(undefined);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ingest',
+      headers: { authorization: `Bearer ${validToken()}` },
+      payload: VALID_SPAN,
+    });
+
+    expect(res.statusCode).toBe(202);
+    await app.close();
+  });
+
+  it('free user at limit → 429', async () => {
+    (db.findUserByOrgId as any).mockResolvedValue({ ...MOCK_USER, plan: 'free' });
+    (db.queryBillingUsage as any).mockResolvedValue({ traces_this_month: 10_000, cost_this_month_usd: 0 });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ingest',
+      headers: { authorization: `Bearer ${validToken()}` },
+      payload: VALID_SPAN,
+    });
+
+    expect(res.statusCode).toBe(429);
+    const body = JSON.parse(res.body);
+    expect(body.plan).toBe('free');
+    expect(body.limit).toBe(10_000);
+    expect(body.upgrade_url).toBe('https://aeneassoft.com/pricing');
+    await app.close();
+  });
+
+  it('pro user at limit → 429', async () => {
+    (db.findUserByOrgId as any).mockResolvedValue({ ...MOCK_USER, plan: 'pro' });
+    (db.queryBillingUsage as any).mockResolvedValue({ traces_this_month: 100_000, cost_this_month_usd: 0 });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ingest',
+      headers: { authorization: `Bearer ${validToken()}` },
+      payload: VALID_SPAN,
+    });
+
+    expect(res.statusCode).toBe(429);
+    const body = JSON.parse(res.body);
+    expect(body.plan).toBe('pro');
+    expect(body.limit).toBe(100_000);
+    await app.close();
+  });
+
+  it('enterprise user → always 202 (no limit)', async () => {
+    (db.findUserByOrgId as any).mockResolvedValue({ ...MOCK_USER, plan: 'enterprise' });
+    (db.insertSpan as any).mockResolvedValue(undefined);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ingest',
+      headers: { authorization: `Bearer ${validToken()}` },
+      payload: VALID_SPAN,
+    });
+
+    expect(res.statusCode).toBe(202);
     await app.close();
   });
 });

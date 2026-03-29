@@ -590,6 +590,15 @@ export async function findUserById(url: string, id: string): Promise<UserRow | n
   return data.data?.[0] || null;
 }
 
+export async function findUserByOrgId(url: string, orgId: string): Promise<UserRow | null> {
+  const db = process.env.CLICKHOUSE_DB || 'productname';
+  if (!VALID_UUID.test(orgId)) return null;
+  const query = `SELECT * FROM users FINAL WHERE org_id = '${orgId}' LIMIT 1 FORMAT JSON`;
+  const res = await fetch(`${url}/?database=${db}`, { method: 'POST', body: query });
+  const data = (await res.json()) as any;
+  return data.data?.[0] || null;
+}
+
 const VALID_STRIPE_CUSTOMER = /^cus_[a-zA-Z0-9]{1,50}$/;
 
 export async function findUserByStripeCustomerId(url: string, customerId: string): Promise<UserRow | null> {
