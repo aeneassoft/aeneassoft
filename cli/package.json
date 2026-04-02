@@ -1,0 +1,22 @@
+{
+  "name": "aeneassoft",
+  "version": "0.1.0",
+  "description": "The Open Source Kill Switch for AI Agents — local dashboard CLI",
+  "bin": {
+    "aeneassoft": "./bin/cli.js"
+  },
+  "keywords": [
+    "ai-agents",
+    "observability",
+    "circuit-breaker",
+    "llm",
+    "kill-switch",
+    "open-source"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aeneassoft/aeneassoft"
+  },
+  "homepage": "https://aeneassoft.com"
+}

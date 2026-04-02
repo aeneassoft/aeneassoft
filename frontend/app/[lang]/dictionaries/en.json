@@ -1,0 +1,329 @@
+{
+  "patentBadge": "Open Source · Patent Pending",
+  "nav": {
+    "product": "Product",
+    "playground": "Playground",
+    "docs": "Docs",
+    "pricing": "Pricing",
+    "startTracing": "Start Tracing",
+    "dashboard": "Dashboard",
+    "toggleMenu": "Toggle menu"
+  },
+  "hero": {
+    "titleStart": "The Proxy-Free Safe Pause & Resume Layer",
+    "titleHighlight": "for AI Agents.",
+    "subtitle": "Stop rogue agents in RAM, save their state, and resume safely. The elegant, in-process alternative to LiteLLM and Portkey. 2 lines of code. No proxies.",
+    "ctaPrimary": "View on GitHub",
+    "ctaSecondary": "Quickstart (Local)",
+    "trustedBy": ""
+  },
+  "codeSplit": {
+    "title": "From Panic to Control in 2 Lines.",
+    "subtitle": "Stop wiring callbacks, decorators, and custom loggers. AeneasSoft intercepts every LLM call at the HTTP level — and blocks the dangerous ones in RAM.",
+    "beforeLabel": "Traditional observability — 50+ lines",
+    "afterLabel": "AeneasSoft — 2 lines",
+    "afterComment": "# Every LLM call monitored. Rogue agents blocked in RAM.",
+    "afterHint": "Works with OpenAI, Anthropic, Gemini, Mistral, Groq, Cohere, Together AI, Fireworks, Azure, Ollama."
+  },
+  "features": {
+    "title": "Active Defense for Multi-Agent Systems.",
+    "subtitle": "Not just observability. Active protection for your AI agents in production.",
+    "items": [
+      {
+        "title": "In-Process Safe Pause & Resume.",
+        "description": "Blocks runaway agents in RAM, saves state via on_block hook, and resumes safely. No proxy. No network roundtrip. No single point of failure. Fully open source."
+      },
+      {
+        "title": "Understand Agent Behavior Instantly.",
+        "description": "Stop digging through JSON logs. See exactly why your agent made a decision with interactive causal execution graphs. No more black boxes."
+      },
+      {
+        "title": "Stop Agent Budget Drain.",
+        "description": "Know precisely which agent spent $47.30 and why. Real-time per-agent, per-model cost breakdowns. Set budget limits that actually block."
+      },
+      {
+        "title": "EU AI Act Ready. (Enterprise)",
+        "description": "Generate RSA-signed Article 12 compliance reports with one click. Be audit-ready by design, not by panic. Available as Enterprise feature."
+      }
+    ]
+  },
+  "comparison": {
+    "title": "Why AeneasSoft?",
+    "subtitle": "Honest comparison. No marketing spin.",
+    "headers": ["Feature", "AeneasSoft", "LiteLLM", "Portkey"],
+    "rows": [
+      ["In-Process (No Proxy)", "Yes", "No (Proxy)", "No (Proxy)"],
+      ["Circuit Breaker", "Yes", "Yes", "Yes"],
+      ["Safe Pause & Resume", "Yes", "No", "No"],
+      ["EU AI Act Reports", "Yes", "No", "No"],
+      ["Setup Time", "2 lines", "Config + proxy", "Config + proxy"],
+      ["Open Source", "Yes (MIT)", "Yes (MIT)", "No"],
+      ["Patent Protected", "Yes (USPTO)", "No", "No"]
+    ]
+  },
+  "socialProof": {
+    "title": "The Universal Interceptor for AI Agents.",
+    "subtitle": "One interceptor. All providers. Zero configuration.",
+    "quote": "We needed to understand our multi-agent systems, not just monitor them. AeneasSoft's HTTP-level interception gave us that control, instantly.",
+    "quoteAttribution": "— Early Adopter, AI Research Lab"
+  },
+  "euAiAct": {
+    "badge": "REGULATION DEADLINE",
+    "title": "EU AI Act Article 12:",
+    "titleHighlight": "August 2, 2026.",
+    "subtitle": "Is your AI system ready?",
+    "description": "Article 12 requires automatic logging of AI system events. AeneasSoft gives you that — plus active defense. Enterprise customers get RSA-signed compliance reports.",
+    "cta": "Check Article 12 Readiness →"
+  },
+  "faq": {
+    "title": "Your Questions. Our Answers.",
+    "items": [
+      {
+        "q": "Why is AeneasSoft open source?",
+        "a": "Because developers don't trust black-box tools that intercept their HTTP traffic. Our entire SDK, interceptor, and circuit breaker are MIT-licensed. Read every line. Audit everything. The method is patent-protected, but the code is yours to inspect."
+      },
+      {
+        "q": "What's the difference between AeneasSoft and LiteLLM/Portkey?",
+        "a": "LiteLLM and Portkey route your traffic through an external proxy server. Your request leaves your process, hits their proxy, then goes to OpenAI. AeneasSoft runs inside your process — no proxy, no added latency, no single point of failure. And we can pause agents, save state, and resume safely — not just block them."
+      },
+      {
+        "q": "How does the interceptor work without code changes?",
+        "a": "We patch HTTP transport libraries (httpx, requests, aiohttp in Python; node:http/node:https in Node.js) at the lowest level. Every outgoing call to AI providers is automatically captured — regardless of which framework sits on top."
+      },
+      {
+        "q": "Does it work with LangChain / CrewAI / AutoGen?",
+        "a": "Yes. Because we intercept at the HTTP level, we work with any framework. No callbacks, no plugins. If it makes HTTP calls to an AI provider, we see it."
+      },
+      {
+        "q": "What about streaming responses?",
+        "a": "Non-streaming calls are captured with 100% accuracy. For streaming calls (stream=True), we capture the initial request and final usage summary (tokens + cost). Full chunk-level tracing ships in Q3 2026."
+      },
+      {
+        "q": "Is my data safe?",
+        "a": "Yes. All data is encrypted in transit (TLS) and at rest. Enable Zero Data Retention mode to store only metadata — no prompts or outputs. EU servers only (Hetzner, Germany). And the code is open source — verify it yourself."
+      }
+    ]
+  },
+  "finalCta": {
+    "titleStart": "Stop Guessing.",
+    "titleHighlight": "Start Defending.",
+    "subtitle": "Open source. No vendor lock-in. 2 lines of code. Full active defense in under 2 minutes.",
+    "cta": "View on GitHub →"
+  },
+  "footer": {
+    "brand": "AeneasSoft",
+    "brandDescription": "The Proxy-Free Safe Pause & Resume Layer for AI Agents. Active defense, observability, and compliance in 2 lines of code.",
+    "product": "Product",
+    "features": "Features",
+    "playground": "Playground",
+    "pricing": "Pricing",
+    "docs": "Docs",
+    "resources": "Resources",
+    "blog": "Blog",
+    "documentation": "Documentation",
+    "agentTraceProtocol": "Agent Trace Protocol",
+    "discord": "Discord Community",
+    "company": "Company",
+    "about": "About",
+    "investors": "Investors",
+    "careers": "Careers",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "imprint": "Imprint",
+    "termsOfService": "Terms of Service",
+    "dpa": "DPA",
+    "copyright": "© 2026 AeneasSoft. All rights reserved.",
+    "mitOpenSource": "Open Source · Patent Pending · \"Daa, I love the project\" 🦄🛸"
+  },
+  "login": {
+    "title": "Welcome Back",
+    "subtitle": "Sign in to your AeneasSoft dashboard.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "submit": "Sign In",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "No account yet?",
+    "register": "Create one"
+  },
+  "register": {
+    "title": "Create Your Account",
+    "subtitle": "Activate active defense for your AI agents in under 2 minutes.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "confirmLabel": "Confirm Password",
+    "submit": "Create Account",
+    "hasAccount": "Already have an account?",
+    "login": "Sign in"
+  },
+  "pricing": {
+    "title": "100% Free. 100% Open Source.",
+    "subtitle": "Self-host everything. No limits. No cloud required. No account needed.",
+    "mostPopular": "",
+    "plans": [
+      {
+        "name": "Open Source",
+        "price": "Free",
+        "period": " forever",
+        "description": "Self-hosted. Full circuit breaker. Full dashboard. No limits.",
+        "features": ["Unlimited traces", "In-process circuit breaker", "Full dashboard + causal graphs", "Cost attribution per agent", "Active Defense with budget limits", "Zero Data Retention mode", "MIT License"],
+        "cta": "View on GitHub",
+        "highlighted": true
+      },
+      {
+        "name": "Cloud (Managed)",
+        "price": "Coming",
+        "period": " Soon",
+        "description": "For teams that don't want to self-host. Managed infrastructure.",
+        "features": ["Everything in Open Source", "Managed ClickHouse + hosting", "Team collaboration", "Priority support", "No infrastructure to maintain"],
+        "cta": "Join Waitlist",
+        "highlighted": false
+      },
+      {
+        "name": "Enterprise",
+        "price": "Contact",
+        "period": " Us",
+        "description": "EU AI Act compliance. SSO. Dedicated support.",
+        "features": ["Everything in Cloud", "EU AI Act Article 12 Reports", "SSO / SAML / SCIM", "Custom data retention", "Dedicated support engineer", "On-premise deployment", "SLA 99.9%"],
+        "cta": "Contact Sales",
+        "highlighted": false
+      }
+    ]
+  },
+  "product": {
+    "title": "The Platform for Active AI Agent Defense.",
+    "subtitle": "Open source code. Patent-protected method. Enterprise-grade protection.",
+    "sections": [
+      {
+        "title": "For Developers: Open source. Audit the code. Trust the tool.",
+        "description": "The entire SDK is MIT-licensed. Read every line of the circuit breaker, the state machine, and the recovery logic. Two lines of code for instant protection. No decorators, no callbacks, no boilerplate. If you don't trust it, don't install it — but you can verify everything first."
+      },
+      {
+        "title": "For CTOs: Active Defense, not passive observation.",
+        "description": "Other tools observe after the damage. AeneasSoft blocks in RAM, saves state via on_block hook, and resumes safely. Set budget limits per agent. If an agent goes rogue, it gets paused — not crashed. The proxy-free alternative to LiteLLM and Portkey."
+      },
+      {
+        "title": "For Compliance: Enterprise-grade Article 12 reporting.",
+        "description": "Automated EU AI Act reports with RSA-2048 signed PDFs. Zero Data Retention mode for ironclad GDPR conformity. Document traceable AI decisions with one click. Available as Enterprise feature."
+      }
+    ]
+  },
+  "docs": {
+    "title": "Documentation",
+    "subtitle": "Everything you need to install, configure, and run AeneasSoft.",
+    "quickstart": "Quickstart",
+    "quickstartIntro": "Get your first trace and activate Active Defense in under 2 minutes.",
+    "step1Title": "Install the SDK",
+    "step1Code": "pip install aeneas-agentwatch",
+    "step2Title": "Initialize in your code",
+    "step2Code": "import agentwatch\nagentwatch.init(api_key=\"aw_your_key_here\")",
+    "step3Title": "Verify connection",
+    "step3Code": "agentwatch.verify()\n# [OK] AeneasSoft connection successful",
+    "step4Title": "Make an LLM call",
+    "step4Code": "from openai import OpenAI\nclient = OpenAI()\nresponse = client.chat.completions.create(\n    model=\"gpt-4\",\n    messages=[{\"role\": \"user\", \"content\": \"Hello\"}]\n)\n# Trace captured. Agent defended. You're in control.",
+    "nodeTitle": "Node.js SDK",
+    "nodeStep1Code": "npm install @aeneassoft/sdk-node",
+    "nodeStep2Code": "import { init } from '@aeneassoft/sdk-node';\ninit({ apiKey: 'aw_your_key_here' });",
+    "apiTitle": "API Reference",
+    "streamingTitle": "Streaming Support",
+    "streamingContent": "Non-streaming calls are captured with 100% accuracy. For streaming calls (stream=True), we capture the initial request and final usage summary (tokens + cost), but not individual chunks. Full chunk-level streaming tracing ships in Q3 2026.",
+    "honestBoundariesTitle": "Honest Boundaries",
+    "honestBoundariesContent": "We believe transparency about limitations builds more trust than hiding them behind 'Beta' labels. Non-streaming calls: 100% accurate. Streaming calls: request + final usage captured, not individual chunks. Cost calculation: list prices for 20+ models (batch/cached/fine-tuned rates not reflected). Each process needs its own init() call (no central proxy config). We test against pinned library versions and ship SDK updates within 48 hours of breaking changes.",
+    "activeDefenseTitle": "Active Defense (Circuit Breaker)",
+    "activeDefenseContent": "Block runaway agents in RAM, save state, resume safely. Active Defense monitors cost, error rate, and call frequency with a full state machine (CLOSED → OPEN → PAUSED → HALF_OPEN).",
+    "activeDefenseCode": "def save_and_pause(event):\n    save_checkpoint(event.trace_id)\n    event.monitor.pause(60)\n\nagentwatch.init(\n    budget_per_hour=10.0,\n    block_on_threshold=True,\n    on_block=save_and_pause\n)\n\ntry:\n    with agentwatch.agent(\"ResearchBot\", budget_per_hour=5.0):\n        result = client.chat.completions.create(...)\nexcept CircuitBreakerException as e:\n    e.monitor.increase_budget(5)  # Resume immediately",
+    "selfHostTitle": "Self-Hosting",
+    "selfHostContent": "Run AeneasSoft locally with Docker. No cloud dependency. No account needed.",
+    "selfHostMinimal": "docker compose -f docker-compose.local.yml up -d\n# Backend: http://localhost:3001\n# ClickHouse only. No Kafka. No auth.",
+    "selfHostFull": "docker compose up -d\n# Full stack: ClickHouse + Kafka + Backend + Proxy\n# Configure via .env file",
+    "frameworksTitle": "Framework Examples",
+    "frameworksContent": "AeneasSoft works with every framework automatically — no plugins needed.",
+    "frameworkLangchain": "from langchain.chat_models import ChatOpenAI\nimport agentwatch\nagentwatch.init()\n\nllm = ChatOpenAI(model=\"gpt-4\")\nresult = llm.invoke(\"Hello\")\n# Trace captured automatically — no callbacks needed",
+    "frameworkCrewai": "from crewai import Agent, Task, Crew\nimport agentwatch\nagentwatch.init()\n\nagent = Agent(role=\"Researcher\", goal=\"Find data\")\n# All LLM calls by CrewAI agents are traced automatically",
+    "frameworkDirect": "import httpx\nimport agentwatch\nagentwatch.init()\n\n# Even raw HTTP calls are captured:\nresp = httpx.post(\"https://api.openai.com/v1/chat/completions\", ...)\n# Trace captured at HTTP transport level",
+    "apiRefTitle": "API Reference",
+    "apiRefContent": "All endpoints accept JSON. Authentication via JWT token or X-API-Key header. In LOCAL_MODE, no auth required.",
+    "apiEndpoints": [
+      {"method": "GET", "path": "/health", "description": "Server status. No auth."},
+      {"method": "POST", "path": "/api/ingest", "description": "Ingest ATP span. API key auth."},
+      {"method": "GET", "path": "/api/traces", "description": "List traces. Supports ?search, ?status, ?agent_id, ?model, ?from, ?to, ?sort, ?order, ?limit, ?offset."},
+      {"method": "GET", "path": "/api/traces/:id/graph", "description": "Causal execution graph for a trace."},
+      {"method": "GET", "path": "/api/traces/:id/spans", "description": "All spans for a trace."},
+      {"method": "GET", "path": "/api/traces/:id/compliance-score", "description": "EU AI Act Article 12 readiness score (0-100)."},
+      {"method": "GET", "path": "/api/traces/:id/compliance-report", "description": "RSA-signed PDF compliance report. Enterprise."},
+      {"method": "GET", "path": "/api/metrics", "description": "Dashboard KPIs: traces, tokens, cost, latency, error rate."},
+      {"method": "GET", "path": "/api/cost/daily", "description": "Daily cost rollup."},
+      {"method": "GET", "path": "/api/cost/by-agent", "description": "Cost breakdown per agent."},
+      {"method": "GET", "path": "/api/cost/by-model", "description": "Cost breakdown per model."},
+      {"method": "GET", "path": "/api/reports/monthly", "description": "Monthly report data (JSON)."},
+      {"method": "GET", "path": "/api/reports/monthly/csv", "description": "Monthly traces export (CSV)."},
+      {"method": "GET", "path": "/api/reports/monthly/pdf", "description": "Monthly report (PDF)."},
+      {"method": "GET", "path": "/api/circuit-breaker/status", "description": "Real-time circuit breaker state."}
+    ]
+  },
+  "playground": {
+    "title": "Interactive Playground",
+    "subtitle": "Explore causal graphs, cost attribution, and Active Defense scoring with simulated multi-agent traces."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Questions about AeneasSoft? We'd love to hear from you.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "messageLabel": "Message",
+    "submit": "Send Message",
+    "success": "Message sent! We'll get back to you within 24 hours."
+  },
+  "about": {
+    "title": "About AeneasSoft: Open Source Active Defense for AI Agents.",
+    "mission": "We believe AI agents are powerful — and dangerous when uncontrolled. AeneasSoft is the open-source safety layer: the first in-process circuit breaker that blocks rogue agents, saves their state, and resumes safely. We combine patent-protected technology with full code transparency, because developers shouldn't have to choose between security and trust.",
+    "openSource": "Our entire SDK is MIT-licensed. The circuit breaker, the state machine, the recovery logic — read every line. The architecture is patent-protected (USPTO Provisional), but the code is yours to audit. Built in Germany, hosted on EU servers, GDPR-compliant from day one.",
+    "founderText": "Founded by an AI developer who got tired of watching agents burn money at 3am. AeneasSoft exists because no other tool could block a rogue agent in RAM before the request left the process. So we built one. Open source. Patent pending. No excuses."
+  },
+  "blog": {
+    "title": "Blog: Active Defense for AI Agents.",
+    "subtitle": "Technical deep dives into AI agent security, observability, and the open-source circuit breaker.",
+    "comingSoon": "First post coming soon: \"Why we open-sourced our patent-pending circuit breaker.\""
+  },
+  "investors": {
+    "title": "Investor Relations: The Infrastructure Layer for Safe AI Agents.",
+    "subtitle": "AeneasSoft is building the open-source standard for AI agent defense. Open code, protected method, enterprise revenue. The Langfuse playbook — but with a patent moat.",
+    "tam": "Total Addressable Market: $6.8B by 2029 (CAGR 36%)",
+    "keyDrivers": "Key Drivers: EU AI Act compliance (Aug 2026 deadline). Multi-agent adoption (40% enterprise by 2026). Uncontrolled AI costs averaging $8k/month per team. Open-source adoption as the dominant distribution model in developer tools.",
+    "contactCta": "Interested in the open-source defense layer for AI? Get in touch →"
+  },
+  "forgotPassword": {
+    "title": "Reset Your Password",
+    "subtitle": "Enter your email and we'll send you a reset link.",
+    "emailLabel": "Email",
+    "submit": "Send Reset Link",
+    "backToLogin": "Back to login",
+    "success": "If an account exists with this email, you'll receive a reset link shortly."
+  },
+  "resetPassword": {
+    "title": "Set New Password",
+    "subtitle": "Enter your new password below.",
+    "passwordLabel": "New Password",
+    "confirmLabel": "Confirm Password",
+    "submit": "Reset Password",
+    "success": "Password updated! You can now sign in.",
+    "backToLogin": "Back to login"
+  },
+  "legal": {
+    "imprint": {
+      "title": "Imprint",
+      "content": "Information pursuant to § 5 DDG\n\nLeonhard Hampe\nJakobistraße 3\n30163 Hannover\nGermany\n\nContact:\nEmail: leonhard.hampe@aeneassoft.com\nWeb: https://aeneassoft.com\n\nVAT:\nVAT identification number pursuant to § 27a UStG:\nWill be added upon assignment.\n\nNotice pursuant to § 36 VSBG:\nWe are not willing or obliged to participate in dispute resolution proceedings before a consumer arbitration board.\n\nLiability for content:\nAs a service provider, we are responsible for our own content on these pages in accordance with § 7 (1) DDG under general law."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "content": "PRIVACY POLICY\n\nLast updated: April 2026\n\n1. Controller\nLeonhard Hampe, Jakobistraße 3, 30163 Hannover, Germany\nEmail: leonhard.hampe@aeneassoft.com\n\n2. Data We Process and Purposes\n\na) Registration:\nEmail address and password (encrypted).\nPurpose: Provision of the user account.\nLegal basis: Art. 6(1)(b) GDPR.\n\nb) AI Agent Traces:\nAeneasSoft processes metadata of AI API calls on behalf of the customer (model, token count, latency, cost, timestamps). Prompts and responses are only stored when Zero Data Retention mode is DISABLED.\nRetention: 30 days (configurable).\nLegal basis: Art. 6(1)(b) GDPR, Art. 28 GDPR.\n\nc) Payment Data:\nPayments are processed via Stripe Inc., certified PCI DSS Level 1. Stripe DPA with Standard Contractual Clauses (SCCs) is in place.\n\n3. Data Processing (Art. 28 GDPR)\nAeneasSoft processes AI agent data as a data processor for its customers. A Data Processing Agreement (DPA) is available on request: leonhard.hampe@aeneassoft.com\n\n4. Service Providers and Sub-Processors\n\nHetzner Online GmbH (Hosting)\nIndustriestr. 25, 91710 Gunzenhausen\nServer location: Germany (EU)\nDPA: in place, ISO 27001 certified\n\nStripe Inc. (Payment processing)\n354 Oyster Point Blvd, South San Francisco\nData transfer to the US via SCCs\nDPA: automatically part of the Stripe agreement\n\nResend Inc. (Email delivery)\n2261 Market Street, San Francisco\nData transfer to the US via SCCs and EU-U.S. DPF\nDPA: available and agreed\n\n5. Zero Data Retention Mode\nIn Zero Data Retention mode, prompts and responses of AI agents are not stored. Only metadata (model, token count, latency, cost) is processed. This option is available to all Enterprise customers.\n\n6. Data Retention\nAccount data: until account deletion\nAI traces: 30 days (default, configurable)\nPayment data: per Stripe policies\nAlert history: 30 days\n\n7. Your Rights (Art. 15-21 GDPR)\nYou have the right to: access (Art. 15), rectification (Art. 16), erasure (Art. 17), restriction of processing (Art. 18), data portability (Art. 20), and objection (Art. 21).\n\nContact: leonhard.hampe@aeneassoft.com\n\n8. Supervisory Authority\nYou have the right to lodge a complaint with a data protection authority:\nDer Bundesbeauftragte für den Datenschutz und die Informationsfreiheit (BfDI)\nGraurheindorfer Str. 153, 53117 Bonn\nhttps://www.bfdi.bund.de"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "content": "Terms of Service — AeneasSoft\n\nLast updated: April 2026\n\n1. Service Description\nAeneasSoft provides an open-source AI Agent Active Defense platform consisting of: an MIT-licensed SDK (interceptor + circuit breaker), a cloud-hosted dashboard, and API services for trace ingestion, analysis and compliance reporting.\n\n2. Open Source SDK\nThe open-source SDK (agentwatch) is provided under MIT License ('AS IS', without warranty of any kind). No warranty is given for fitness for a particular purpose.\n\n3. Data Processing\nAeneasSoft processes personal data on behalf of the customer as a data processor under Art. 28 GDPR. A Data Processing Agreement (DPA) is available on request.\n\n4. Pricing\nAll prices are exclusive of applicable VAT (Mehrwertsteuer). Current pricing is displayed at aeneassoft.com/pricing.\n\n5. Price Changes\nAeneasSoft reserves the right to change prices with 30 days notice. Existing subscriptions are adjusted to new prices at the end of the current billing period.\n\n6. EU AI Act Compliance\nAeneasSoft provides technical tools to support EU AI Act compliance. Legal responsibility for EU AI Act adherence remains with the customer. AeneasSoft assumes no liability for regulatory decisions regarding the customer's AI systems.\n\n7. Liability (B2B)\nLiability for slight negligence is excluded in B2B relationships, except where cardinal obligations (Kardinalpflichten) are violated. Liability is limited to the amount paid in the month preceding the damage event.\n\n8. Plan Limits\n- Open Source: 10,000 traces/month (self-hosted: unlimited)\n- Cloud: 100,000 traces/month\n- Enterprise: Unlimited (custom agreement)\n\nExceeding plan limits results in HTTP 429 responses until the next billing cycle.\n\n9. Termination\nEither party may terminate with 30 days notice. Upon termination, data is deleted within 30 days unless legally required to retain.\n\n10. Governing Law\nThese terms are governed by the laws of the Federal Republic of Germany."
+    },
+    "dpa": {
+      "title": "Data Processing Agreement",
+      "content": "AUFTRAGSVERARBEITUNGSVERTRAG\ngem. Art. 28 DSGVO\n\nzwischen\n\nAeneasSoft (Leonhard Hampe, Jakobistraße 3, 30163 Hannover)\n— Auftragsverarbeiter —\n\nund\n\n[KUNDENNAME, ADRESSE]\n— Verantwortlicher —\n\n§1 Gegenstand\nAeneasSoft verarbeitet im Auftrag des Verantwortlichen folgende personenbezogene Daten:\n- AI-Agent-Traces (Metadaten, optional: Prompts/Outputs)\n- Zweck: Observability und Debugging von AI-Systemen\n\n§2 Weisungsgebundenheit\nDer Auftragsverarbeiter verarbeitet Daten nur auf dokumentierte Weisung des Verantwortlichen.\n\n§3 Technische und organisatorische Massnahmen\n- Verschluesselung in Transit (TLS 1.3) und at Rest (AES-256)\n- Zugriffskontrolle (API Keys, JWT-basierte Authentifizierung)\n- Datenloeschung nach 30 Tagen (konfigurierbar)\n- Zero Data Retention Modus verfuegbar\n- Server-Standort: EU (Hetzner, Deutschland)\n\n§4 Unterauftragsverarbeiter\n- Hetzner Online GmbH (Hosting, EU)\n- Stripe Inc. (Zahlungsabwicklung, SCCs)\n- Resend Inc. (E-Mail-Versand, SCCs)\n\n§5 Betroffenenrechte\nDer Auftragsverarbeiter unterstuetzt den Verantwortlichen bei der Erfuellung von Auskunfts-, Loesch- und Berichtigungsanfragen gemaess Art. 15-21 DSGVO.\n\n§6 Laufzeit und Kuendigung\nDieser Vertrag gilt fuer die Dauer der Nutzung der AeneasSoft-Dienste. Bei Beendigung werden alle personenbezogenen Daten innerhalb von 30 Tagen geloescht.\n\nFuer eine unterschriebene Version kontaktieren Sie: leonhard.hampe@aeneassoft.com"
+    }
+  }
+}

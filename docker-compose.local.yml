@@ -1,0 +1,44 @@
+# AeneasSoft — Local Development Setup
+# Start with: docker compose -f docker-compose.local.yml up -d
+# Dashboard: http://localhost:3001/health (API)
+# No Kafka. No auth. No cloud dependency.
+#
+# For the frontend dashboard, run separately:
+#   cd frontend && npm install && npm run dev
+#   Open http://localhost:3000/en/dashboard
+#
+# Or use the full SDK quickstart:
+#   pip install aeneas-agentwatch
+#   python -c "import agentwatch; agentwatch.init(); agentwatch.verify()"
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    ports: ["8123:8123"]
+    environment:
+      CLICKHOUSE_DB: "aeneassoft"
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - clickhouse_local:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports: ["3001:3001"]
+    environment:
+      CLICKHOUSE_URL: "http://clickhouse:8123"
+      CLICKHOUSE_DB: "aeneassoft"
+      LOCAL_MODE: "true"
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+    depends_on:
+      clickhouse: { condition: service_healthy }
+
+volumes:
+  clickhouse_local:

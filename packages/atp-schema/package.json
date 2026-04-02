@@ -1,0 +1,48 @@
+{
+  "name": "@aeneassoft/atp-schema",
+  "version": "1.0.0",
+  "description": "Agent Trace Protocol (ATP) — open telemetry schema for multi-agent AI systems",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "zod": ">=3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "zod": "^3.22.4"
+  },
+  "keywords": [
+    "ai-agents",
+    "observability",
+    "tracing",
+    "llm",
+    "opentelemetry",
+    "eu-ai-act",
+    "compliance",
+    "atp"
+  ],
+  "homepage": "https://github.com/aeneassoft/atp-schema#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aeneassoft/atp-schema"
+  }
+}

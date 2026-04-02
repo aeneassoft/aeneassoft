@@ -1,0 +1,29 @@
+name: Weekly Stats
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"  # Every Monday 9:00 UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PyPI Downloads
+        id: pypi
+        run: |
+          DOWNLOADS=$(curl -s "https://pypistats.org/api/packages/aeneas-agentwatch/recent" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('last_week',0))" 2>/dev/null || echo "0")
+          echo "downloads=$DOWNLOADS" >> $GITHUB_OUTPUT
+
+      - name: Get GitHub Stars
+        id: stars
+        run: |
+          STARS=$(curl -s "https://api.github.com/repos/aeneassoft/aeneassoft" | python3 -c "import sys,json; print(json.load(sys.stdin).get('stargazers_count',0))" 2>/dev/null || echo "0")
+          echo "stars=$STARS" >> $GITHUB_OUTPUT
+
+      - name: Post to Discord
+        if: vars.DISCORD_WEBHOOK_URL
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{\"content\": \"📊 **Weekly Stats**\n⭐ GitHub Stars: ${{ steps.stars.outputs.stars }}\n📦 PyPI Downloads (last week): ${{ steps.pypi.outputs.downloads }}\"}" \
+            "${{ vars.DISCORD_WEBHOOK_URL }}" || true

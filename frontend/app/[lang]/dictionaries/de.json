@@ -1,0 +1,301 @@
+{
+  "patentBadge": "Open Source · Patent angemeldet",
+  "nav": {
+    "product": "Produkt",
+    "playground": "Playground",
+    "docs": "Dokumentation",
+    "pricing": "Preise",
+    "startTracing": "Jetzt starten",
+    "dashboard": "Dashboard",
+    "toggleMenu": "Menu"
+  },
+  "hero": {
+    "titleStart": "Der Proxy-Free Safe Pause & Resume Layer",
+    "titleHighlight": "für KI-Agenten.",
+    "subtitle": "Stoppen Sie Agenten im RAM, sichern Sie ihren State und setzen Sie sicher fort. Die elegante In-Process Alternative zu LiteLLM und Portkey. 2 Zeilen Code. Kein Proxy.",
+    "ctaPrimary": "Auf GitHub ansehen",
+    "ctaSecondary": "Schnellstart (Lokal)",
+    "trustedBy": ""
+  },
+  "codeSplit": {
+    "title": "Von Panik zu Kontrolle in 2 Zeilen.",
+    "subtitle": "Schluss mit Callbacks, Decorators und Custom-Loggern. AeneasSoft fängt jeden LLM-Call auf HTTP-Ebene ab — und blockiert die gefährlichen im RAM.",
+    "beforeLabel": "Traditionelles Observability — 50+ Zeilen",
+    "afterLabel": "AeneasSoft — 2 Zeilen",
+    "afterComment": "# Jeder LLM-Call überwacht. Außer Kontrolle geratene Agenten blockiert.",
+    "afterHint": "Funktioniert mit OpenAI, Anthropic, Gemini, Mistral, Groq, Cohere, Together AI, Fireworks, Azure, Ollama."
+  },
+  "features": {
+    "title": "Active Defense für Multi-Agenten-Systeme.",
+    "subtitle": "Nicht nur Observability. Aktiver Schutz für Ihre KI-Agenten in Produktion.",
+    "items": [
+      {
+        "title": "In-Process Safe Pause & Resume.",
+        "description": "Blockiert bösartige oder endlos laufende Requests direkt im Arbeitsspeicher. Keine Proxy-Latenz. Kein Netzwerk-Roundtrip. Kein Single Point of Failure. Vollständig Open Source."
+      },
+      {
+        "title": "Agentenverhalten sofort verstehen.",
+        "description": "Schluss mit JSON-Logs durchsuchen. Sehen Sie genau warum Ihr Agent eine Entscheidung getroffen hat — mit interaktiven kausalen Ausführungsgraphen."
+      },
+      {
+        "title": "Budget-Verschwendung stoppen.",
+        "description": "Wissen Sie genau welcher Agent $47.30 ausgegeben hat und warum. Echtzeit-Kostenaufschlüsselung pro Agent und Modell. Budget-Limits die tatsächlich blockieren."
+      },
+      {
+        "title": "EU AI Act Ready. (Enterprise)",
+        "description": "Generieren Sie RSA-signierte Article 12 Compliance-Reports mit einem Klick. Audit-ready by Design. Verfügbar als Enterprise-Feature."
+      }
+    ]
+  },
+  "comparison": {
+    "title": "Warum AeneasSoft?",
+    "subtitle": "Ehrlicher Vergleich. Kein Marketing-Spin.",
+    "headers": ["Feature", "AeneasSoft", "LiteLLM", "Portkey"],
+    "rows": [
+      ["In-Process (Kein Proxy)", "Ja", "Nein (Proxy)", "Nein (Proxy)"],
+      ["Circuit Breaker", "Ja", "Ja", "Ja"],
+      ["Safe Pause & Resume", "Ja", "Nein", "Nein"],
+      ["EU AI Act Reports", "Ja", "Nein", "Nein"],
+      ["Setup-Zeit", "2 Zeilen", "Config + Proxy", "Config + Proxy"],
+      ["Open Source", "Ja (MIT)", "Ja (MIT)", "Nein"],
+      ["Patent-geschützt", "Ja (USPTO)", "Nein", "Nein"]
+    ]
+  },
+  "socialProof": {
+    "title": "Der universelle Interceptor für KI-Agenten.",
+    "subtitle": "Ein Interceptor. Alle Anbieter. Null Konfiguration.",
+    "quote": "Wir mussten unsere Multi-Agenten-Systeme verstehen, nicht nur überwachen. AeneasSofts HTTP-Level Interception gab uns diese Kontrolle — sofort.",
+    "quoteAttribution": "— Early Adopter, AI Research Lab"
+  },
+  "euAiAct": {
+    "badge": "REGULIERUNGS-FRIST",
+    "title": "EU AI Act Artikel 12:",
+    "titleHighlight": "2. August 2026.",
+    "subtitle": "Ist Ihr KI-System bereit?",
+    "description": "Artikel 12 verlangt automatische Protokollierung von KI-System-Ereignissen. AeneasSoft liefert das — plus aktive Verteidigung. Enterprise-Kunden erhalten RSA-signierte Compliance-Reports.",
+    "cta": "Article 12 Readiness prüfen →"
+  },
+  "faq": {
+    "title": "Ihre Fragen. Unsere Antworten.",
+    "items": [
+      {
+        "q": "Warum ist AeneasSoft Open Source?",
+        "a": "Weil Entwickler keinen Blackbox-Tools vertrauen die ihren HTTP-Traffic abfangen. Unser gesamtes SDK, Interceptor und Circuit Breaker sind MIT-lizenziert. Lesen Sie jede Zeile. Auditieren Sie alles. Die Methode ist patent-geschützt, aber der Code ist offen."
+      },
+      {
+        "q": "Was ist der Unterschied zu LiteLLM/Portkey?",
+        "a": "LiteLLM und Portkey leiten Traffic über einen externen Proxy-Server. AeneasSoft läuft innerhalb Ihres Prozesses — kein Proxy, keine Latenz, kein Single Point of Failure. Und wir können Agenten pausieren, State sichern und sicher fortsetzen — nicht nur blockieren."
+      },
+      {
+        "q": "Wie funktioniert der Interceptor ohne Code-Änderungen?",
+        "a": "Wir patchen HTTP-Transport-Bibliotheken (httpx, requests, aiohttp in Python; node:http/node:https in Node.js) auf der untersten Ebene. Jeder ausgehende Call zu KI-Anbietern wird automatisch erfasst — unabhängig vom Framework."
+      },
+      {
+        "q": "Funktioniert es mit LangChain / CrewAI / AutoGen?",
+        "a": "Ja. Weil wir auf HTTP-Ebene abfangen, funktionieren wir mit jedem Framework. Keine Callbacks, keine Plugins. Wenn es HTTP-Calls zu einem KI-Anbieter macht, sehen wir es."
+      },
+      {
+        "q": "Was ist mit Streaming-Responses?",
+        "a": "Non-Streaming Calls werden mit 100% Genauigkeit erfasst. Bei Streaming-Calls (stream=True) erfassen wir den initialen Request und die finale Usage-Zusammenfassung (Tokens + Kosten). Vollständige Chunk-Level Erfassung kommt in Q3 2026."
+      },
+      {
+        "q": "Sind meine Daten sicher?",
+        "a": "Ja. Alle Daten werden in Transit (TLS) und at Rest verschlüsselt. Aktivieren Sie den Zero Data Retention Modus für nur Metadaten — keine Prompts oder Outputs. Ausschließlich EU-Server (Hetzner, Deutschland). Und der Code ist Open Source — verifizieren Sie es selbst."
+      }
+    ]
+  },
+  "finalCta": {
+    "titleStart": "Schluss mit Raten.",
+    "titleHighlight": "Verteidigung starten.",
+    "subtitle": "Open Source. Kein Vendor Lock-in. 2 Zeilen Code. Volle Active Defense in unter 2 Minuten.",
+    "cta": "Auf GitHub ansehen →"
+  },
+  "footer": {
+    "brand": "AeneasSoft",
+    "brandDescription": "Der Proxy-Free Safe Pause & Resume Layer für KI-Agenten. Active Defense, Observability und Compliance in 2 Zeilen Code.",
+    "product": "Produkt",
+    "features": "Features",
+    "playground": "Playground",
+    "pricing": "Preise",
+    "docs": "Dokumentation",
+    "resources": "Ressourcen",
+    "blog": "Blog",
+    "documentation": "Dokumentation",
+    "agentTraceProtocol": "Agent Trace Protocol",
+    "discord": "Discord Community",
+    "company": "Unternehmen",
+    "about": "Über uns",
+    "investors": "Investoren",
+    "careers": "Karriere",
+    "legal": "Rechtliches",
+    "privacyPolicy": "Datenschutz",
+    "imprint": "Impressum",
+    "termsOfService": "AGB",
+    "dpa": "AVV",
+    "copyright": "© 2026 AeneasSoft. Alle Rechte vorbehalten.",
+    "mitOpenSource": "Open Source · Patent angemeldet · \"Daa, I love the project\" 🦄🛸"
+  },
+  "login": {
+    "title": "Willkommen zurück",
+    "subtitle": "Melden Sie sich bei Ihrem AeneasSoft Dashboard an.",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "submit": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "noAccount": "Noch kein Konto?",
+    "register": "Registrieren"
+  },
+  "register": {
+    "title": "Konto erstellen",
+    "subtitle": "Aktivieren Sie Active Defense für Ihre KI-Agenten in unter 2 Minuten.",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "confirmLabel": "Passwort bestätigen",
+    "submit": "Konto erstellen",
+    "hasAccount": "Bereits ein Konto?",
+    "login": "Anmelden"
+  },
+  "pricing": {
+    "title": "100% Kostenlos. 100% Open Source.",
+    "subtitle": "Alles selbst hosten. Keine Limits. Keine Cloud nötig. Kein Account nötig.",
+    "mostPopular": "",
+    "plans": [
+      {
+        "name": "Open Source",
+        "price": "Kostenlos",
+        "period": " für immer",
+        "description": "Self-hosted. Voller Circuit Breaker. Volles Dashboard. Keine Limits.",
+        "features": ["Unbegrenzte Traces", "In-Process Circuit Breaker", "Volles Dashboard + kausale Graphen", "Kostenattribution pro Agent", "Active Defense mit Budget-Limits", "Zero Data Retention Modus", "MIT-Lizenz"],
+        "cta": "Auf GitHub ansehen",
+        "highlighted": true
+      },
+      {
+        "name": "Cloud (Managed)",
+        "price": "Demnächst",
+        "period": " verfügbar",
+        "description": "Für Teams die nicht selbst hosten möchten. Managed Infrastruktur.",
+        "features": ["Alles aus Open Source", "Managed ClickHouse + Hosting", "Team-Kollaboration", "Prioritäts-Support", "Keine eigene Infrastruktur nötig"],
+        "cta": "Auf Warteliste setzen",
+        "highlighted": false
+      },
+      {
+        "name": "Enterprise",
+        "price": "Kontaktieren",
+        "period": " Sie uns",
+        "description": "EU AI Act Compliance. SSO. Dedizierter Support.",
+        "features": ["Alles aus Cloud", "EU AI Act Article 12 Reports", "SSO / SAML / SCIM", "Individuelle Datenaufbewahrung", "Dedizierter Support-Ingenieur", "On-Premise Deployment", "SLA 99,9%"],
+        "cta": "Vertrieb kontaktieren",
+        "highlighted": false
+      }
+    ]
+  },
+  "product": {
+    "title": "Die Plattform für aktive KI-Agenten-Verteidigung.",
+    "subtitle": "Open Source Code. Patent-geschützte Methode. Enterprise-grade Schutz.",
+    "sections": [
+      {
+        "title": "Für Entwickler: Open Source. Code auditieren. Tool vertrauen.",
+        "description": "Das gesamte SDK ist MIT-lizenziert. Lesen Sie jede Zeile des Circuit Breakers, der State Machine und der Recovery-Logik. Zwei Zeilen Code für sofortigen Schutz. Keine Decorators, keine Callbacks, kein Boilerplate. Wenn Sie es nicht vertrauen, installieren Sie es nicht — aber Sie können alles vorher verifizieren."
+      },
+      {
+        "title": "Für CTOs: Active Defense, nicht passive Beobachtung.",
+        "description": "Andere Tools beobachten nach dem Schaden. AeneasSoft blockiert im RAM, sichert State via on_block Hook und setzt sicher fort. Budget-Limits pro Agent. Wenn ein Agent durchdreht, wird er pausiert — nicht gecrasht. Die Proxy-freie Alternative zu LiteLLM und Portkey."
+      },
+      {
+        "title": "Für Compliance: Enterprise-grade Article 12 Reporting.",
+        "description": "Automatisierte EU AI Act Reports mit RSA-2048 signierten PDFs. Zero Data Retention Modus für eiserne DSGVO-Konformität. Nachvollziehbare KI-Entscheidungen auf Knopfdruck dokumentieren. Verfügbar als Enterprise-Feature."
+      }
+    ]
+  },
+  "docs": {
+    "title": "Dokumentation",
+    "subtitle": "Alles was Sie brauchen um AeneasSoft zu installieren, konfigurieren und betreiben.",
+    "quickstart": "Schnellstart",
+    "quickstartIntro": "Erhalten Sie Ihren ersten Trace und aktivieren Sie Active Defense in unter 2 Minuten.",
+    "step1Title": "SDK installieren",
+    "step1Code": "pip install aeneas-agentwatch",
+    "step2Title": "In Ihrem Code initialisieren",
+    "step2Code": "import agentwatch\nagentwatch.init(api_key=\"aw_ihr_key_hier\")",
+    "step3Title": "Verbindung prüfen",
+    "step3Code": "agentwatch.verify()\n# [OK] AeneasSoft connection successful",
+    "step4Title": "Einen LLM-Call machen",
+    "step4Code": "from openai import OpenAI\nclient = OpenAI()\nresponse = client.chat.completions.create(\n    model=\"gpt-4\",\n    messages=[{\"role\": \"user\", \"content\": \"Hallo\"}]\n)\n# Trace erfasst. Agent verteidigt. Sie haben die Kontrolle.",
+    "nodeTitle": "Node.js SDK",
+    "nodeStep1Code": "npm install @aeneassoft/sdk-node",
+    "nodeStep2Code": "import { init } from '@aeneassoft/sdk-node';\ninit({ apiKey: 'aw_ihr_key_hier' });",
+    "apiTitle": "API-Referenz",
+    "streamingTitle": "Streaming Support",
+    "streamingContent": "Non-Streaming Calls werden mit 100% Genauigkeit erfasst. Bei Streaming-Calls (stream=True) erfassen wir den initialen Request und die finale Usage-Zusammenfassung (Tokens + Kosten). Vollständige Chunk-Level Erfassung kommt in Q3 2026.",
+    "honestBoundariesTitle": "Ehrliche Grenzen",
+    "honestBoundariesContent": "Wir glauben dass Transparenz über Limitationen mehr Vertrauen schafft als sie hinter 'Beta'-Labels zu verstecken. Non-Streaming: 100% genau. Streaming: Request + finale Usage erfasst. Kostenberechnung: Listenpreise für 20+ Modelle. Jeder Prozess braucht seinen eigenen init()-Aufruf. Wir testen gegen fixierte Library-Versionen und liefern SDK-Updates innerhalb von 48h bei Breaking Changes.",
+    "activeDefenseTitle": "Active Defense (Circuit Breaker)",
+    "activeDefenseContent": "Blockieren Sie durchdrehende KI-Agenten bevor sie Ihr Budget aufbrauchen. Active Defense überwacht Kosten, Fehlerrate und Call-Frequenz in Echtzeit — warnt Sie und blockiert optional Calls bevor sie den Arbeitsspeicher verlassen.",
+    "activeDefenseCode": "agentwatch.init(\n    api_key=\"aw_...\",\n    budget_per_hour=10.0,       # Alert bei > 10$/Stunde\n    max_error_rate=0.5,          # Alert bei > 50% Fehler\n    max_calls_per_minute=100,    # Alert bei > 100 Calls/Min\n    block_on_threshold=True      # Calls blockieren (opt-in)\n)\n\n# Pro Agent:\nwith agentwatch.agent(\"ExpensiveBot\",\n                       budget_per_hour=5.0,\n                       block_on_threshold=True):\n    result = client.chat.completions.create(...)\n# -> CircuitBreakerException wenn > 5$/Stunde"
+  },
+  "playground": {
+    "title": "Interaktiver Playground",
+    "subtitle": "Erkunden Sie kausale Graphen, Kostenattribution und Active Defense Scoring mit simulierten Multi-Agenten-Traces."
+  },
+  "contact": {
+    "title": "Kontakt",
+    "subtitle": "Fragen zu AeneasSoft? Wir freuen uns von Ihnen zu hören.",
+    "nameLabel": "Name",
+    "emailLabel": "E-Mail",
+    "messageLabel": "Nachricht",
+    "submit": "Nachricht senden",
+    "success": "Nachricht gesendet! Wir melden uns innerhalb von 24 Stunden."
+  },
+  "about": {
+    "title": "Über AeneasSoft: Open Source Active Defense für KI-Agenten.",
+    "mission": "Wir glauben dass KI-Agenten mächtig sind — und gefährlich wenn unkontrolliert. AeneasSoft ist der Open-Source Safety Layer: der erste In-Process Circuit Breaker der Agenten stoppt, ihren State sichert und sicher fortsetzt. Wir kombinieren patent-geschützte Technologie mit vollständiger Code-Transparenz, weil Entwickler nicht zwischen Sicherheit und Vertrauen wählen sollten.",
+    "openSource": "Unser gesamtes SDK ist MIT-lizenziert. Der Circuit Breaker, die State Machine, die Recovery-Logik — lesen Sie jede Zeile. Die Architektur ist patent-geschützt (USPTO Provisional), aber der Code ist offen. Gebaut in Deutschland, gehostet auf EU-Servern, DSGVO-konform von Tag eins.",
+    "founderText": "Gegründet von einem KI-Entwickler der es satt hatte zuzusehen wie Agenten um 3 Uhr morgens Geld verbrennen. AeneasSoft existiert weil kein anderes Tool einen außer Kontrolle geratenen Agenten im RAM stoppen konnte bevor der Request den Prozess verließ. Also haben wir eins gebaut. Open Source. Patent angemeldet. Keine Ausreden."
+  },
+  "blog": {
+    "title": "Blog: Active Defense für KI-Agenten.",
+    "subtitle": "Technische Deep Dives in KI-Agenten-Sicherheit, Observability und den Open-Source Circuit Breaker.",
+    "comingSoon": "Erster Beitrag kommt bald: \"Warum wir unseren patent-geschützten Circuit Breaker als Open Source veröffentlicht haben.\""
+  },
+  "investors": {
+    "title": "Investor Relations: Die Infrastruktur-Schicht für sichere KI-Agenten.",
+    "subtitle": "AeneasSoft baut den Open-Source-Standard für KI-Agenten-Verteidigung. Offener Code, geschützte Methode, Enterprise-Revenue. Das Langfuse-Playbook — aber mit einem Patent-Moat.",
+    "tam": "Total Addressable Market: $6,8 Mrd. bis 2029 (CAGR 36%)",
+    "keyDrivers": "Treiber: EU AI Act Compliance (Frist Aug 2026). Multi-Agenten-Adoption (40% Enterprise bis 2026). Unkontrollierte KI-Kosten von durchschnittlich $8k/Monat pro Team. Open-Source-Adoption als dominantes Distributionsmodell bei Entwickler-Tools.",
+    "contactCta": "Interesse an der Open-Source Defense-Schicht für KI? Kontaktieren Sie uns →"
+  },
+  "forgotPassword": {
+    "title": "Passwort zurücksetzen",
+    "subtitle": "Geben Sie Ihre E-Mail ein und wir senden Ihnen einen Reset-Link.",
+    "emailLabel": "E-Mail",
+    "submit": "Reset-Link senden",
+    "backToLogin": "Zurück zum Login",
+    "success": "Falls ein Konto mit dieser E-Mail existiert, erhalten Sie in Kürze einen Reset-Link."
+  },
+  "resetPassword": {
+    "title": "Neues Passwort setzen",
+    "subtitle": "Geben Sie Ihr neues Passwort ein.",
+    "passwordLabel": "Neues Passwort",
+    "confirmLabel": "Passwort bestätigen",
+    "submit": "Passwort zurücksetzen",
+    "success": "Passwort aktualisiert! Sie können sich jetzt anmelden.",
+    "backToLogin": "Zurück zum Login"
+  },
+  "legal": {
+    "imprint": {
+      "title": "Impressum",
+      "content": "Angaben gemäß § 5 DDG\n\nLeonhard Hampe\nJakobistraße 3\n30163 Hannover\nDeutschland\n\nKontakt:\nE-Mail: leonhard.hampe@aeneassoft.com\nWeb: https://aeneassoft.com\n\nUmsatzsteuer:\nUmsatzsteuer-Identifikationsnummer gemäß § 27a UStG:\nWird nach Zuteilung ergänzt.\n\nHinweis gemäß § 36 VSBG:\nWir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.\n\nHaftung für Inhalte:\nAls Diensteanbieter sind wir gemäß § 7 Abs.1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich."
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "content": "DATENSCHUTZERKLÄRUNG\n\nStand: April 2026\n\n1. Verantwortlicher\nLeonhard Hampe, Jakobistraße 3, 30163 Hannover\nE-Mail: leonhard.hampe@aeneassoft.com\n\n2. Erhobene Daten und Zwecke\n\na) Bei der Registrierung:\nE-Mail-Adresse und Passwort (verschlüsselt). Zweck: Bereitstellung des Nutzerkontos. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.\n\nb) AI-Agent-Traces:\nAeneasSoft verarbeitet im Auftrag des Kunden Metadaten von AI-API-Calls (Modell, Token-Anzahl, Latenz, Kosten, Zeitstempel). Prompts und Antworten werden nur gespeichert wenn der Zero Data Retention Modus DEAKTIVIERT ist. Speicherdauer: 30 Tage (konfigurierbar). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO, Art. 28 DSGVO.\n\nc) Zahlungsdaten:\nZahlungen werden über Stripe Inc. abgewickelt. Stripe ist zertifiziert nach PCI DSS Level 1. Stripe DPA mit Standardvertragsklauseln (SCCs) ist abgeschlossen.\n\n3. Auftragsverarbeitung (Art. 28 DSGVO)\nAeneasSoft verarbeitet AI-Agent-Daten als Auftragsverarbeiter für seine Kunden. Ein Auftragsverarbeitungsvertrag (AVV) wird auf Anfrage bereitgestellt: leonhard.hampe@aeneassoft.com\n\n4. Dienstleister und Unterauftragsverarbeiter\n\nHetzner Online GmbH (Hosting)\nIndustriestr. 25, 91710 Gunzenhausen, Server-Standort: Deutschland (EU), DPA: vorhanden, ISO 27001 zertifiziert\n\nStripe Inc. (Zahlungsabwicklung)\n354 Oyster Point Blvd, South San Francisco, Datentransfer in die USA via SCCs, DPA: automatisch Teil des Stripe-Vertrags\n\nResend Inc. (E-Mail-Versand)\n2261 Market Street, San Francisco, Datentransfer in die USA via SCCs und EU-U.S. DPF, DPA: verfügbar und vereinbart\n\n5. Zero Data Retention Modus\nIm Zero Data Retention Modus werden Prompts und Antworten der AI-Agenten nicht gespeichert. Nur Metadaten (Modell, Token-Anzahl, Latenz, Kosten) werden verarbeitet. Diese Option ist für alle Enterprise-Kunden verfügbar.\n\n6. Speicherdauer\nAccount-Daten: bis zur Konto-Löschung. AI-Traces: 30 Tage (Standard, konfigurierbar). Zahlungsdaten: gemäß Stripe-Richtlinien. Alert-Historie: 30 Tage.\n\n7. Ihre Rechte (Art. 15-21 DSGVO)\nSie haben das Recht auf: Auskunft über Ihre gespeicherten Daten (Art. 15), Berichtigung unrichtiger Daten (Art. 16), Löschung Ihrer Daten (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20), Widerspruch gegen die Verarbeitung (Art. 21).\n\nZur Ausübung Ihrer Rechte kontaktieren Sie uns: leonhard.hampe@aeneassoft.com\n\n8. Beschwerderecht\nSie haben das Recht auf Beschwerde bei der zuständigen Datenschutzbehörde:\nDer Bundesbeauftragte für den Datenschutz und die Informationsfreiheit (BfDI)\nGraurheindorfer Str. 153, 53117 Bonn\nhttps://www.bfdi.bund.de"
+    },
+    "terms": {
+      "title": "Allgemeine Geschäftsbedingungen",
+      "content": "Allgemeine Geschäftsbedingungen — AeneasSoft\n\nStand: April 2026\n\n1. Leistungsbeschreibung\nAeneasSoft bietet eine Open-Source KI-Agenten Active Defense Plattform bestehend aus: einem MIT-lizenzierten SDK (Interceptor + Circuit Breaker), einem cloud-gehosteten Dashboard und API-Diensten für Trace-Ingestion, Analyse und Compliance-Reporting.\n\n2. Open Source SDK\nDer Open-Source-Kern (agentwatch SDK) wird unter MIT-Lizenz bereitgestellt. Die Software wird ohne Mängelgewähr (AS IS) zur Verfügung gestellt.\n\n3. Auftragsverarbeitung\nAeneasSoft verarbeitet im Rahmen der Leistungserbringung personenbezogene Daten im Auftrag des Kunden gemäß Art. 28 DSGVO.\n\n4. Preise\nAlle Preise verstehen sich zzgl. gesetzlicher Mehrwertsteuer (MwSt). Aktuelle Preise finden Sie unter aeneassoft.com/pricing.\n\n5. Preisänderungen\nAeneasSoft behält sich das Recht vor, Preise mit einer Ankündigungsfrist von 30 Tagen zu ändern.\n\n6. EU AI Act Compliance\nAeneasSoft stellt technische Werkzeuge zur Unterstützung der EU AI Act Compliance bereit. Die rechtliche Verantwortung für die Einhaltung des EU AI Acts verbleibt beim Kunden.\n\n7. Haftungsbeschränkung (B2B)\nIm B2B-Bereich ist die Haftung für leichte Fahrlässigkeit ausgeschlossen, sofern keine Kardinalpflichten verletzt werden.\n\n8. Plan-Limits\n- Open Source: 10.000 Traces/Monat (self-hosted: unbegrenzt)\n- Cloud: 100.000 Traces/Monat\n- Enterprise: Unbegrenzt (individuelle Vereinbarung)\n\n9. Kündigung\nJede Partei kann mit 30 Tagen Frist kündigen.\n\n10. Anwendbares Recht\nEs gilt das Recht der Bundesrepublik Deutschland."
+    },
+    "dpa": {
+      "title": "Auftragsverarbeitungsvertrag",
+      "content": "AUFTRAGSVERARBEITUNGSVERTRAG\ngemäß Art. 28 DSGVO\n\nzwischen\n\nAeneasSoft (Leonhard Hampe, Jakobistraße 3, 30163 Hannover)\n— Auftragsverarbeiter —\n\nund\n\n[KUNDENNAME, ADRESSE]\n— Verantwortlicher —\n\n§1 Gegenstand\nAeneasSoft verarbeitet im Auftrag des Verantwortlichen folgende personenbezogene Daten:\n- AI-Agent-Traces (Metadaten, optional: Prompts/Outputs)\n- Zweck: Observability und Active Defense von AI-Systemen\n\n§2 Weisungsgebundenheit\nDer Auftragsverarbeiter verarbeitet Daten nur auf dokumentierte Weisung des Verantwortlichen.\n\n§3 Technische und organisatorische Maßnahmen\n- Verschlüsselung in Transit (TLS 1.3) und at Rest (AES-256)\n- Zugriffskontrolle (API Keys, JWT-basierte Authentifizierung)\n- Datenlöschung nach 30 Tagen (konfigurierbar)\n- Zero Data Retention Modus verfügbar\n- Server-Standort: EU (Hetzner, Deutschland)\n\n§4 Unterauftragsverarbeiter\n- Hetzner Online GmbH (Hosting, EU)\n- Stripe Inc. (Zahlungsabwicklung, SCCs)\n- Resend Inc. (E-Mail-Versand, SCCs)\n\n§5 Betroffenenrechte\nDer Auftragsverarbeiter unterstützt den Verantwortlichen bei der Erfüllung von Auskunfts-, Lösch- und Berichtigungsanfragen gemäß Art. 15-21 DSGVO.\n\n§6 Laufzeit und Kündigung\nDieser Vertrag gilt für die Dauer der Nutzung der AeneasSoft-Dienste. Bei Beendigung werden alle personenbezogenen Daten innerhalb von 30 Tagen gelöscht.\n\nFür eine unterschriebene Version kontaktieren Sie: leonhard.hampe@aeneassoft.com"
+    }
+  }
+}

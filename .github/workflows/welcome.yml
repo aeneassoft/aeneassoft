@@ -1,0 +1,32 @@
+name: Welcome New Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: |
+            Thanks for opening your first issue! 🛡️
+
+            We'll take a look as soon as possible. In the meantime:
+            - 📖 [Documentation](https://aeneassoft.com/en/docs)
+            - 💬 [Join our Discord](https://discord.gg/Y9x6jf3cnu)
+            - ⭐ If you find AeneasSoft useful, consider [starring the repo](https://github.com/aeneassoft/aeneassoft)
+          pr-message: |
+            Thanks for your first pull request! 🛡️
+
+            We'll review it shortly. Please make sure:
+            - Tests pass (`cd sdks/python && python -m pytest tests/ -v`)
+            - No breaking changes to the 2-line setup
+            - 💬 [Join our Discord](https://discord.gg/Y9x6jf3cnu) for faster feedback

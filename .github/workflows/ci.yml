@@ -1,0 +1,38 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  python-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          cd sdks/python
+          pip install -e ".[dev]"
+      - name: Run tests
+        run: |
+          cd sdks/python
+          python -m pytest tests/ -v
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm install --workspaces --include-workspace-root
+      - name: Build shared packages
+        run: npm run build --workspace=packages/atp-schema
+      - name: Run tests
+        run: cd backend && npx vitest run
